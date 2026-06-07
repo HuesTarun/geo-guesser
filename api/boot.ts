@@ -26,6 +26,15 @@ export default app;
 if (env.isProduction) {
   const { serve } = await import("@hono/node-server");
   const { serveStaticFiles } = await import("./lib/vite");
+  const { initializeDatabase } = await import("./lib/db-init");
+
+  // Initialize database (run migrations & seeding)
+  try {
+    await initializeDatabase();
+  } catch (err) {
+    console.error("Critical: Database initialization failed:", err);
+  }
+
   serveStaticFiles(app);
 
   const port = parseInt(process.env.PORT || "3000");

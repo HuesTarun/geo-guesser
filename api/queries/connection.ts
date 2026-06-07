@@ -1,5 +1,5 @@
-import { drizzle } from "drizzle-orm/better-sqlite3";
-import Database from "better-sqlite3";
+import { drizzle } from "drizzle-orm/postgres-js";
+import postgres from "postgres";
 import { env } from "../lib/env";
 import * as schema from "@db/schema";
 import * as relations from "@db/relations";
@@ -7,14 +7,12 @@ import * as relations from "@db/relations";
 const fullSchema = { ...schema, ...relations };
 
 let instance: ReturnType<typeof drizzle<typeof fullSchema>>;
-let sqlite: Database.Database;
+let sqlClient: ReturnType<typeof postgres>;
 
 export function getDb() {
   if (!instance) {
-    // If databaseUrl is like `file:./local.db`, we parse the path
-    const dbPath = env.databaseUrl.replace('file:', '') || './sqlite.db';
-    sqlite = new Database(dbPath);
-    instance = drizzle(sqlite, {
+    sqlClient = postgres(env.databaseUrl);
+    instance = drizzle(sqlClient, {
       schema: fullSchema,
     });
   }

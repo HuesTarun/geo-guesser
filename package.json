@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build && esbuild api/boot.ts --platform=node --bundle --format=esm --outdir=dist --banner:js=\"import { createRequire } from 'module';const require = createRequire(import.meta.url);\"",
+    "build": "vite build && esbuild api/boot.ts --platform=node --bundle --format=esm --outdir=dist --external:better-sqlite3 --banner:js=\"import { createRequire as _createRequire } from 'module';import { fileURLToPath as _fileURLToPath } from 'url';const require = _createRequire(import.meta.url);const __filename = _fileURLToPath(import.meta.url);const __dirname = _fileURLToPath(new URL('.', import.meta.url));\"",
     "lint": "eslint .",
     "preview": "vite preview",
     "start": "NODE_ENV=production node dist/boot.js",
@@ -68,6 +68,7 @@
     "lucide-react": "^0.562.0",
     "nanoid": "^5.1.6",
     "next-themes": "^0.4.6",
+    "postgres": "^3.4.9",
     "react": "^19.2.0",
     "react-day-picker": "^9.13.0",
     "react-dom": "^19.2.0",
