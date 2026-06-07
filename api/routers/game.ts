@@ -281,7 +281,9 @@ export const gameRouter = createRouter({
       }
 
       if (!nextLocation) {
-        nextLocation = await getRandomLocation(game.region);
+        const gameRounds = await getRoundsByGameId(input.gameId);
+        const visitedIds = gameRounds.map((r) => r.locationId);
+        nextLocation = await getRandomLocation(game.region, undefined, visitedIds);
       }
 
       if (!nextLocation) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "No locations available" });

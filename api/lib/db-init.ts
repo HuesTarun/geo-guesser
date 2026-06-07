@@ -2,6 +2,7 @@ import { getDb } from "../queries/connection";
 import { migrate } from "drizzle-orm/postgres-js/migrator";
 import { locations } from "../../db/schema";
 import { seedLocations } from "../../db/locations-data";
+import { sql } from "drizzle-orm";
 import path from "path";
 
 export async function initializeDatabase() {
@@ -19,24 +20,28 @@ export async function initializeDatabase() {
     throw err;
   }
 
-  // 2. Seed initial locations if empty
+  // 2. Seed initial and new locations
   try {
-    const existing = await db
-      .select({ id: locations.id })
-      .from(locations)
-      .limit(1);
+    console.log("[DB] Syncing locations database...");
+    let addedCount = 0;
+    for (const loc of seedLocations) {
+      const exists = await db
+        .select({ id: locations.id })
+        .from(locations)
+        .where(
+          sql`abs(${locations.lat} - ${loc.lat}) < 0.0001 AND abs(${locations.lng} - ${loc.lng}) < 0.0001`
+        )
+        .limit(1);
 
-    if (existing.length === 0) {
-      console.log("[DB] No locations found. Seeding initial locations...");
-      for (const loc of seedLocations) {
-        await db.insert(locations).values(loc).onConflictDoUpdate({
-          target: locations.id,
-          set: loc,
-        });
+      if (exists.length === 0) {
+        await db.insert(locations).values(loc);
+        addedCount++;
       }
-      console.log(`[DB] Seeded ${seedLocations.length} locations successfully.`);
+    }
+    if (addedCount > 0) {
+      console.log(`[DB] Seeded ${addedCount} new locations successfully.`);
     } else {
-      console.log("[DB] Locations table already populated.");
+      console.log("[DB] Locations database is up-to-date.");
     }
   } catch (err) {
     console.error("[DB] Error checking/seeding locations:", err);

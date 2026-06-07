@@ -1,5 +1,6 @@
 import { Server as HttpServer } from "http";
 import { Server as SocketIOServer, Socket } from "socket.io";
+import { getRandomLocations } from "./queries/games";
 
 interface LobbyPlayer {
   socketId: string;
@@ -29,6 +30,7 @@ interface Lobby {
     content: string;
     timestamp: Date;
   }>;
+  locations?: any[];
 }
 
 const lobbies = new Map<string, Lobby>();
@@ -185,7 +187,7 @@ export function createSocketServer(httpServer: HttpServer) {
     });
 
     // ─── Lobby: Start Game ─────────────────────────────────────────
-    socket.on("lobby:start", (data: { code: string }) => {
+    socket.on("lobby:start", async (data: { code: string }) => {
       const lobby = lobbies.get(data.code);
       if (!lobby) return;
       if (lobby.hostId !== socket.data.userId) {
@@ -193,10 +195,30 @@ export function createSocketServer(httpServer: HttpServer) {
         return;
       }
 
-      lobby.status = "in_progress";
-      io.to(`lobby:${data.code}`).emit("lobby:game_started", {
-        settings: lobby.settings,
-      });
+      try {
+        const locations = await getRandomLocations(
+          lobby.settings.region,
+          lobby.settings.totalRounds
+        );
+        lobby.locations = locations;
+        lobby.status = "in_progress";
+
+        io.to(`lobby:${data.code}`).emit("lobby:game_started", {
+          settings: lobby.settings,
+          locations: locations.map((loc) => ({
+            id: loc.id,
+            lat: loc.lat,
+            lng: loc.lng,
+            country: loc.country,
+            city: loc.city,
+            imageUrl: loc.imageUrl,
+            difficulty: loc.difficulty,
+          })),
+        });
+      } catch (err: any) {
+        console.error("Failed to start multiplayer game:", err);
+        socket.emit("lobby:error", { message: "Failed to load game locations" });
+      }
     });
 
     // ─── Game: Submit Guess ────────────────────────────────────────
@@ -238,6 +260,13 @@ export function createSocketServer(httpServer: HttpServer) {
           username: p.username,
           score: p.score,
         })),
+      });
+    });
+
+    // ─── Game: Next Round ──────────────────────────────────────────
+    socket.on("game:next_round", (data: { code: string; round: number }) => {
+      io.to(`lobby:${data.code}`).emit("game:next_round", {
+        round: data.round,
       });
     });
 

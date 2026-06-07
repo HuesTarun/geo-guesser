@@ -30,6 +30,7 @@ interface LobbyState {
   isHost: boolean;
   isReady: boolean;
   status: "idle" | "waiting" | "in_progress" | "finished";
+  gameLocations: any[];
 
   setLobby: (code: string, name: string, players: LobbyPlayer[], isHost: boolean) => void;
   setPlayers: (players: LobbyPlayer[]) => void;
@@ -38,6 +39,7 @@ interface LobbyState {
   updateSettings: (settings: Partial<LobbyState["settings"]>) => void;
   setReady: (ready: boolean) => void;
   setStatus: (status: LobbyState["status"]) => void;
+  setGameLocations: (locations: any[]) => void;
   reset: () => void;
 }
 
@@ -56,6 +58,7 @@ export const useLobbyStore = create<LobbyState>((set) => ({
   isHost: false,
   isReady: false,
   status: "idle",
+  gameLocations: [],
 
   setLobby: (code, name, players, isHost) =>
     set({ lobbyCode: code, lobbyName: name, players, isHost, status: "waiting" }),
@@ -73,6 +76,8 @@ export const useLobbyStore = create<LobbyState>((set) => ({
 
   setStatus: (status) => set({ status }),
 
+  setGameLocations: (locations) => set({ gameLocations: locations }),
+
   reset: () =>
     set({
       lobbyCode: null,
@@ -89,5 +94,6 @@ export const useLobbyStore = create<LobbyState>((set) => ({
       isHost: false,
       isReady: false,
       status: "idle",
+      gameLocations: [],
     }),
 }));

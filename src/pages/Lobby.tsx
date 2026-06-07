@@ -64,7 +64,10 @@ export default function Lobby() {
       lobbyStore.addMessage(msg);
     });
 
-    const unsubGameStarted = on("lobby:game_started", () => {
+    const unsubGameStarted = on("lobby:game_started", (data: any) => {
+      if (data?.locations) {
+        lobbyStore.setGameLocations(data.locations);
+      }
       lobbyStore.setStatus("in_progress");
       navigate("/multiplayer");
     });

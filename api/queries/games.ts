@@ -1,4 +1,4 @@
-import { eq, desc, and, sql } from "drizzle-orm";
+import { eq, desc, and, sql, notInArray } from "drizzle-orm";
 import { getDb } from "./connection";
 import { games, rounds, locations, users, leaderboardEntries } from "@db/schema";
 import type { InsertGame, InsertRound } from "@db/schema";
@@ -42,7 +42,7 @@ export async function getRoundsByGameId(gameId: number) {
   return db.select().from(rounds).where(eq(rounds.gameId, gameId)).orderBy(rounds.roundNumber);
 }
 
-export async function getRandomLocation(region?: string, difficulty?: string) {
+export async function getRandomLocation(region?: string, difficulty?: string, excludeIds?: number[]) {
   const db = getDb();
   const conditions = [];
   
@@ -51,6 +51,9 @@ export async function getRandomLocation(region?: string, difficulty?: string) {
   }
   if (difficulty) {
     conditions.push(eq(locations.difficulty, difficulty as "easy" | "medium" | "hard" | "expert"));
+  }
+  if (excludeIds && excludeIds.length > 0) {
+    conditions.push(notInArray(locations.id, excludeIds));
   }
   conditions.push(eq(locations.isActive, true));
 
@@ -68,6 +71,34 @@ export async function getRandomLocation(region?: string, difficulty?: string) {
 
   const randomIndex = Math.floor(Math.random() * allLocations.length);
   return allLocations[randomIndex];
+}
+
+export async function getRandomLocations(region?: string, limit: number = 5, excludeIds?: number[]) {
+  const db = getDb();
+  const conditions = [];
+  
+  if (region && region !== "worldwide") {
+    conditions.push(eq(locations.region, region as "europe" | "asia" | "africa" | "north_america" | "south_america" | "oceania"));
+  }
+  if (excludeIds && excludeIds.length > 0) {
+    conditions.push(notInArray(locations.id, excludeIds));
+  }
+  conditions.push(eq(locations.isActive, true));
+
+  const query = conditions.length > 0
+    ? db.select().from(locations).where(and(...conditions))
+    : db.select().from(locations);
+
+  const allLocations = await query;
+  
+  if (allLocations.length === 0) {
+    // Fallback: return limit locations
+    return db.select().from(locations).limit(limit);
+  }
+
+  // Shuffle and limit
+  const shuffled = [...allLocations].sort(() => 0.5 - Math.random());
+  return shuffled.slice(0, limit);
 }
 
 export async function getGameHistory(userId: number, page: number = 1, limit: number = 20) {

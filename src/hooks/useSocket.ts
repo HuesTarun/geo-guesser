@@ -2,72 +2,74 @@ import { useEffect, useRef, useCallback } from "react";
 import { io, Socket } from "socket.io-client";
 import { useAuth } from "./useAuth";
 
-interface SocketListener {
-  event: string;
-  callback: (data: any) => void;
-}
+let socketInstance: Socket | null = null;
+const listeners = new Set<{ event: string; callback: (data: any) => void }>();
 
 export function useSocket() {
-  const socketRef = useRef<Socket | null>(null);
   const { user, isAuthenticated } = useAuth();
-  const listenersRef = useRef<SocketListener[]>([]);
+  const localListenersRef = useRef<Set<{ event: string; callback: (data: any) => void }>>(new Set());
 
   useEffect(() => {
-    if (!isAuthenticated || !user) return;
+    if (!isAuthenticated || !user) {
+      if (socketInstance) {
+        socketInstance.disconnect();
+        socketInstance = null;
+      }
+      return;
+    }
 
-    const socketUrl = import.meta.env.DEV ? "http://localhost:3001" : window.location.origin;
-    const socket = io(socketUrl, {
-      path: "/socket.io",
-      transports: ["websocket"],
-      autoConnect: true,
-    });
-
-    socket.on("connect", () => {
-      socket.emit("auth", {
-        userId: user.id,
-        username: user.name || user.username || "Player",
-        avatar: user.avatar,
+    if (!socketInstance) {
+      const socketUrl = import.meta.env.DEV ? "http://localhost:3001" : window.location.origin;
+      socketInstance = io(socketUrl, {
+        path: "/socket.io",
+        transports: ["websocket"],
+        autoConnect: true,
       });
 
-      // Bind all registered listeners on connection
-      listenersRef.current.forEach(({ event, callback }) => {
-        socket.on(event, callback);
-      });
-    });
+      socketInstance.on("connect", () => {
+        console.log("Socket connected:", socketInstance?.id);
+        socketInstance?.emit("auth", {
+          userId: user.id,
+          username: user.name || user.username || "Player",
+          avatar: user.avatar,
+        });
 
-    socketRef.current = socket;
+        // Re-bind all active listeners on connection
+        listeners.forEach(({ event, callback }) => {
+          socketInstance?.on(event, callback);
+        });
+      });
+    }
 
     return () => {
-      // Unbind all registered listeners
-      listenersRef.current.forEach(({ event, callback }) => {
-        socket.off(event, callback);
+      // Cleanup this component's local listeners when it unmounts
+      localListenersRef.current.forEach((listener) => {
+        listeners.delete(listener);
+        socketInstance?.off(listener.event, listener.callback);
       });
-      socket.disconnect();
-      socketRef.current = null;
+      localListenersRef.current.clear();
     };
   }, [isAuthenticated, user?.id]);
 
   const emit = useCallback((event: string, data: unknown) => {
-    socketRef.current?.emit(event, data);
+    socketInstance?.emit(event, data);
   }, []);
 
   const on = useCallback((event: string, callback: (data: any) => void) => {
     const listener = { event, callback };
-    listenersRef.current.push(listener);
+    listeners.add(listener);
+    localListenersRef.current.add(listener);
 
-    // If socket is already active and connected, bind immediately
-    if (socketRef.current) {
-      socketRef.current.on(event, callback);
+    if (socketInstance) {
+      socketInstance.on(event, callback);
     }
 
-    // Return an unsubscribe cleanup function
     return () => {
-      listenersRef.current = listenersRef.current.filter((l) => l !== listener);
-      if (socketRef.current) {
-        socketRef.current.off(event, callback);
-      }
+      listeners.delete(listener);
+      localListenersRef.current.delete(listener);
+      socketInstance?.off(event, callback);
     };
   }, []);
 
-  return { socket: socketRef.current, emit, on };
+  return { socket: socketInstance, emit, on };
 }

@@ -115,4 +115,124 @@ export const seedLocations = [
   { lat: -54.2811, lng: 36.5092, country: "South Georgia", city: "Grytviken", region: "south_america" as const, difficulty: "expert" as const },
   { lat: -25.0667, lng: -130.1000, country: "Pitcairn Islands", city: "Adamstown", region: "oceania" as const, difficulty: "expert" as const },
   { lat: 7.8731, lng: 80.7718, country: "Maldives", city: "Male", region: "asia" as const, difficulty: "expert" as const },
+
+  // New Europe - Easy
+  { lat: 41.3851, lng: 2.1734, country: "Spain", city: "Barcelona", region: "europe" as const, difficulty: "easy" as const },
+  { lat: 52.3676, lng: 4.9041, country: "Netherlands", city: "Amsterdam", region: "europe" as const, difficulty: "easy" as const },
+  { lat: 48.2082, lng: 16.3738, country: "Austria", city: "Vienna", region: "europe" as const, difficulty: "easy" as const },
+  { lat: 50.8503, lng: 4.3517, country: "Belgium", city: "Brussels", region: "europe" as const, difficulty: "easy" as const },
+  { lat: 53.3498, lng: -6.2603, country: "Ireland", city: "Dublin", region: "europe" as const, difficulty: "easy" as const },
+  // New Europe - Medium
+  { lat: 38.7223, lng: -9.1393, country: "Portugal", city: "Lisbon", region: "europe" as const, difficulty: "medium" as const },
+  { lat: 52.2297, lng: 21.0122, country: "Poland", city: "Warsaw", region: "europe" as const, difficulty: "medium" as const },
+  { lat: 60.1699, lng: 24.9384, country: "Finland", city: "Helsinki", region: "europe" as const, difficulty: "medium" as const },
+  { lat: 59.9139, lng: 10.7522, country: "Norway", city: "Oslo", region: "europe" as const, difficulty: "medium" as const },
+  { lat: 46.2044, lng: 6.1432, country: "Switzerland", city: "Geneva", region: "europe" as const, difficulty: "medium" as const },
+  // New Europe - Hard
+  { lat: 45.8150, lng: 15.9819, country: "Croatia", city: "Zagreb", region: "europe" as const, difficulty: "hard" as const },
+  { lat: 48.1486, lng: 17.1077, country: "Slovakia", city: "Bratislava", region: "europe" as const, difficulty: "hard" as const },
+  { lat: 46.0569, lng: 14.5058, country: "Slovenia", city: "Ljubljana", region: "europe" as const, difficulty: "hard" as const },
+  { lat: 59.4370, lng: 24.7536, country: "Estonia", city: "Tallinn", region: "europe" as const, difficulty: "hard" as const },
+  { lat: 56.9496, lng: 24.1052, country: "Latvia", city: "Riga", region: "europe" as const, difficulty: "hard" as const },
+  { lat: 54.6872, lng: 25.2797, country: "Lithuania", city: "Vilnius", region: "europe" as const, difficulty: "hard" as const },
+
+  // New Asia - Easy
+  { lat: 34.6937, lng: 135.5023, country: "Japan", city: "Osaka", region: "asia" as const, difficulty: "easy" as const },
+  { lat: 19.0760, lng: 72.8777, country: "India", city: "Mumbai", region: "asia" as const, difficulty: "easy" as const },
+  { lat: 31.2304, lng: 121.4737, country: "China", city: "Shanghai", region: "asia" as const, difficulty: "easy" as const },
+  { lat: 35.1796, lng: 129.0756, country: "South Korea", city: "Busan", region: "asia" as const, difficulty: "easy" as const },
+  { lat: 22.3193, lng: 114.1694, country: "Hong Kong", city: "Hong Kong", region: "asia" as const, difficulty: "easy" as const },
+  { lat: 25.0330, lng: 121.5654, country: "Taiwan", city: "Taipei", region: "asia" as const, difficulty: "easy" as const },
+  // New Asia - Medium
+  { lat: 35.0116, lng: 135.7681, country: "Japan", city: "Kyoto", region: "asia" as const, difficulty: "medium" as const },
+  { lat: 12.9716, lng: 77.5946, country: "India", city: "Bengaluru", region: "asia" as const, difficulty: "medium" as const },
+  { lat: -6.2088, lng: 106.8456, country: "Indonesia", city: "Jakarta", region: "asia" as const, difficulty: "medium" as const },
+  { lat: 13.3633, lng: 103.8564, country: "Cambodia", city: "Siem Reap", region: "asia" as const, difficulty: "medium" as const },
+  { lat: 10.8231, lng: 106.6297, country: "Vietnam", city: "Ho Chi Minh City", region: "asia" as const, difficulty: "medium" as const },
+  // New Asia - Hard
+  { lat: 47.8864, lng: 106.9057, country: "Mongolia", city: "Ulaanbaatar", region: "asia" as const, difficulty: "hard" as const },
+  { lat: 23.5859, lng: 58.4059, country: "Oman", city: "Muscat", region: "asia" as const, difficulty: "hard" as const },
+  { lat: 31.9454, lng: 35.9284, country: "Jordan", city: "Amman", region: "asia" as const, difficulty: "hard" as const },
+  { lat: 43.2220, lng: 76.8512, country: "Kazakhstan", city: "Almaty", region: "asia" as const, difficulty: "hard" as const },
+  { lat: 17.9757, lng: 102.6331, country: "Laos", city: "Vientiane", region: "asia" as const, difficulty: "hard" as const },
+
+  // New North America - Easy
+  { lat: 41.8781, lng: -87.6298, country: "United States", city: "Chicago", region: "north_america" as const, difficulty: "easy" as const },
+  { lat: 37.7749, lng: -122.4194, country: "United States", city: "San Francisco", region: "north_america" as const, difficulty: "easy" as const },
+  { lat: 49.2827, lng: -123.1207, country: "Canada", city: "Vancouver", region: "north_america" as const, difficulty: "easy" as const },
+  { lat: 38.9072, lng: -77.0369, country: "United States", city: "Washington D.C.", region: "north_america" as const, difficulty: "easy" as const },
+  { lat: 42.3601, lng: -71.0589, country: "United States", city: "Boston", region: "north_america" as const, difficulty: "easy" as const },
+  // New North America - Medium
+  { lat: 21.1619, lng: -86.8515, country: "Mexico", city: "Cancun", region: "north_america" as const, difficulty: "medium" as const },
+  { lat: 20.6597, lng: -103.3496, country: "Mexico", city: "Guadalajara", region: "north_america" as const, difficulty: "medium" as const },
+  { lat: 45.4215, lng: -75.6972, country: "Canada", city: "Ottawa", region: "north_america" as const, difficulty: "medium" as const },
+  { lat: 51.0447, lng: -114.0719, country: "Canada", city: "Calgary", region: "north_america" as const, difficulty: "medium" as const },
+  { lat: 9.9281, lng: -84.0907, country: "Costa Rica", city: "San Jose", region: "north_america" as const, difficulty: "medium" as const },
+  // New North America - Hard
+  { lat: 61.2181, lng: -149.9003, country: "United States", city: "Anchorage", region: "north_america" as const, difficulty: "hard" as const },
+  { lat: 14.0723, lng: -87.1921, country: "Honduras", city: "Tegucigalpa", region: "north_america" as const, difficulty: "hard" as const },
+  { lat: 12.1150, lng: -86.2362, country: "Nicaragua", city: "Managua", region: "north_america" as const, difficulty: "hard" as const },
+  { lat: 8.9824, lng: -79.5199, country: "Panama", city: "Panama City", region: "north_america" as const, difficulty: "hard" as const },
+  { lat: 25.0443, lng: -77.3504, country: "Bahamas", city: "Nassau", region: "north_america" as const, difficulty: "hard" as const },
+
+  // New South America - Easy
+  { lat: -15.7975, lng: -47.8919, country: "Brazil", city: "Brasilia", region: "south_america" as const, difficulty: "easy" as const },
+  { lat: 6.2442, lng: -75.5812, country: "Colombia", city: "Medellin", region: "south_america" as const, difficulty: "easy" as const },
+  { lat: -31.4201, lng: -64.1888, country: "Argentina", city: "Cordoba", region: "south_america" as const, difficulty: "easy" as const },
+  { lat: -13.5319, lng: -71.9675, country: "Peru", city: "Cusco", region: "south_america" as const, difficulty: "easy" as const },
+  { lat: 10.4806, lng: -66.9036, country: "Venezuela", city: "Caracas", region: "south_america" as const, difficulty: "easy" as const },
+  // New South America - Medium
+  { lat: -2.1894, lng: -79.8890, country: "Ecuador", city: "Guayaquil", region: "south_america" as const, difficulty: "medium" as const },
+  { lat: -32.8895, lng: -68.8458, country: "Argentina", city: "Mendoza", region: "south_america" as const, difficulty: "medium" as const },
+  { lat: -12.9777, lng: -38.5016, country: "Brazil", city: "Salvador", region: "south_america" as const, difficulty: "medium" as const },
+  { lat: -17.7833, lng: -63.1833, country: "Bolivia", city: "Santa Cruz", region: "south_america" as const, difficulty: "medium" as const },
+  { lat: -16.4090, lng: -71.5375, country: "Peru", city: "Arequipa", region: "south_america" as const, difficulty: "medium" as const },
+  // New South America - Hard
+  { lat: 4.9372, lng: -52.3260, country: "French Guiana", city: "Cayenne", region: "south_america" as const, difficulty: "hard" as const },
+  { lat: -3.1190, lng: -60.0217, country: "Brazil", city: "Manaus", region: "south_america" as const, difficulty: "hard" as const },
+  { lat: -34.9627, lng: -54.9442, country: "Uruguay", city: "Punta del Este", region: "south_america" as const, difficulty: "hard" as const },
+  { lat: -41.1335, lng: -71.3103, country: "Argentina", city: "Bariloche", region: "south_america" as const, difficulty: "hard" as const },
+  { lat: -27.1127, lng: -109.3497, country: "Chile", city: "Easter Island", region: "south_america" as const, difficulty: "hard" as const },
+
+  // New Africa - Easy
+  { lat: -26.2041, lng: 28.0473, country: "South Africa", city: "Johannesburg", region: "africa" as const, difficulty: "easy" as const },
+  { lat: 30.0131, lng: 31.2089, country: "Egypt", city: "Giza", region: "africa" as const, difficulty: "easy" as const },
+  { lat: 31.6295, lng: -7.9811, country: "Morocco", city: "Marrakech", region: "africa" as const, difficulty: "easy" as const },
+  { lat: 36.8065, lng: 10.1815, country: "Tunisia", city: "Tunis", region: "africa" as const, difficulty: "easy" as const },
+  { lat: 9.0192, lng: 38.7469, country: "Ethiopia", city: "Addis Ababa", region: "africa" as const, difficulty: "easy" as const },
+  // New Africa - Medium
+  { lat: 16.0244, lng: -16.5049, country: "Senegal", city: "Saint-Louis", region: "africa" as const, difficulty: "medium" as const },
+  { lat: -8.8390, lng: 13.2894, country: "Angola", city: "Luanda", region: "africa" as const, difficulty: "medium" as const },
+  { lat: -6.7924, lng: 39.2083, country: "Tanzania", city: "Dar es Salaam", region: "africa" as const, difficulty: "medium" as const },
+  { lat: -15.3875, lng: 28.3228, country: "Zambia", city: "Lusaka", region: "africa" as const, difficulty: "medium" as const },
+  { lat: -17.8252, lng: 31.0530, country: "Zimbabwe", city: "Harare", region: "africa" as const, difficulty: "medium" as const },
+  // New Africa - Hard
+  { lat: -25.9692, lng: 32.5732, country: "Mozambique", city: "Maputo", region: "africa" as const, difficulty: "hard" as const },
+  { lat: -22.6784, lng: 14.5268, country: "Namibia", city: "Swakopmund", region: "africa" as const, difficulty: "hard" as const },
+  { lat: -18.1492, lng: 49.4023, country: "Madagascar", city: "Toamasina", region: "africa" as const, difficulty: "hard" as const },
+  { lat: 0.4162, lng: 9.4673, country: "Gabon", city: "Libreville", region: "africa" as const, difficulty: "hard" as const },
+  { lat: -1.9441, lng: 30.0619, country: "Rwanda", city: "Kigali", region: "africa" as const, difficulty: "hard" as const },
+
+  // New Oceania - Easy
+  { lat: -34.9285, lng: 138.6007, country: "Australia", city: "Adelaide", region: "oceania" as const, difficulty: "easy" as const },
+  { lat: -35.2809, lng: 149.1300, country: "Australia", city: "Canberra", region: "oceania" as const, difficulty: "easy" as const },
+  { lat: -43.5321, lng: 172.6362, country: "New Zealand", city: "Christchurch", region: "oceania" as const, difficulty: "easy" as const },
+  // New Oceania - Medium
+  { lat: -42.8821, lng: 147.3272, country: "Australia", city: "Hobart", region: "oceania" as const, difficulty: "medium" as const },
+  { lat: -9.4438, lng: 147.1803, country: "Papua New Guinea", city: "Port Moresby", region: "oceania" as const, difficulty: "medium" as const },
+  { lat: -45.0312, lng: 168.6626, country: "New Zealand", city: "Queenstown", region: "oceania" as const, difficulty: "medium" as const },
+  // New Oceania - Hard
+  { lat: 6.9248, lng: 158.1611, country: "Micronesia", city: "Palikir", region: "oceania" as const, difficulty: "hard" as const },
+  { lat: -0.5477, lng: 166.9187, country: "Nauru", city: "Yaren", region: "oceania" as const, difficulty: "hard" as const },
+  { lat: -8.5211, lng: 179.1962, country: "Tuvalu", city: "Funafuti", region: "oceania" as const, difficulty: "hard" as const },
+  { lat: 7.1190, lng: 171.3650, country: "Marshall Islands", city: "Majuro", region: "oceania" as const, difficulty: "hard" as const },
+  { lat: -17.7333, lng: 168.3200, country: "Vanuatu", city: "Port Vila", region: "oceania" as const, difficulty: "hard" as const },
+
+  // New Expert
+  { lat: 78.0673, lng: 14.2120, country: "Svalbard", city: "Barentsburg", region: "europe" as const, difficulty: "expert" as const },
+  { lat: 64.1743, lng: -51.7373, country: "Greenland", city: "Nuuk", region: "north_america" as const, difficulty: "expert" as const },
+  { lat: -54.9341, lng: -67.6109, country: "Chile", city: "Puerto Williams", region: "south_america" as const, difficulty: "expert" as const },
+  { lat: -77.8460, lng: 166.6683, country: "Antarctica", city: "McMurdo Station", region: "oceania" as const, difficulty: "expert" as const },
+  { lat: -51.6978, lng: -57.8517, country: "Falkland Islands", city: "Stanley", region: "south_america" as const, difficulty: "expert" as const },
+  { lat: -15.9277, lng: -5.7175, country: "Saint Helena", city: "Jamestown", region: "africa" as const, difficulty: "expert" as const },
 ];
