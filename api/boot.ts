@@ -7,8 +7,14 @@ import { createContext } from "./context";
 import { env } from "./lib/env";
 import { createServer } from "http";
 import { createSocketServer } from "./socket-server";
+import { initializeDatabase } from "./lib/db-init";
 
 const app = new Hono<{ Bindings: HttpBindings }>();
+
+// Run migrations and seeding asynchronously in both dev and prod
+initializeDatabase().catch((err) => {
+  console.error("Critical: Database initialization failed:", err);
+});
 
 app.use(bodyLimit({ maxSize: 50 * 1024 * 1024 }));
 app.use("/api/trpc/*", async (c) => {
@@ -26,14 +32,6 @@ export default app;
 if (env.isProduction) {
   const { serve } = await import("@hono/node-server");
   const { serveStaticFiles } = await import("./lib/vite");
-  const { initializeDatabase } = await import("./lib/db-init");
-
-  // Initialize database (run migrations & seeding)
-  try {
-    await initializeDatabase();
-  } catch (err) {
-    console.error("Critical: Database initialization failed:", err);
-  }
 
   serveStaticFiles(app);
 
