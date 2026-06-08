@@ -43,6 +43,8 @@ interface GameState {
     nextRound?: { roundId: number; roundNumber: number; location: GameLocation } | null;
     gameComplete?: boolean;
     finalScore?: number;
+    eloChange?: number;
+    newElo?: number;
   } | null;
 
   // Actions
@@ -64,6 +66,8 @@ interface GameState {
     nextRound?: { roundId: number; roundNumber: number; location: GameLocation } | null;
     gameComplete?: boolean;
     finalScore?: number;
+    eloChange?: number;
+    newElo?: number;
   }) => void;
   setTimeLeft: (time: number) => void;
   nextRound: (data: {
@@ -135,6 +139,8 @@ export const useGameStore = create<GameState>((set) => ({
         nextRound: result.nextRound || null,
         gameComplete: result.gameComplete || false,
         finalScore: result.finalScore,
+        eloChange: result.eloChange,
+        newElo: result.newElo,
       };
 
       if (result.gameComplete) {

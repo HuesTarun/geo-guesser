@@ -139,7 +139,7 @@ export async function addLeaderboardEntry(data: typeof leaderboardEntries.$infer
 export async function updateUserStats(userId: number, score: number, distance: number, isWin: boolean, maxPossibleScore: number = 25000) {
   const db = getDb();
   const user = await db.select().from(users).where(eq(users.id, userId)).limit(1);
-  if (user.length === 0) return;
+  if (user.length === 0) return null;
 
   const u = user[0];
   const newGamesPlayed = u.gamesPlayed + 1;
@@ -149,7 +149,10 @@ export async function updateUserStats(userId: number, score: number, distance: n
   const newWins = isWin ? u.wins + 1 : u.wins;
   const newLosses = !isWin ? u.losses + 1 : u.losses;
 
-  const eloChange = Math.round((score - (maxPossibleScore * 0.5)) / 100);
+  // Dynamic ELO calculation based on current rating
+  const expectedRatio = Math.min(0.95, Math.max(0.1, 0.1 + (u.eloRating / 2500) * 0.8));
+  const scoreRatio = score / maxPossibleScore;
+  const eloChange = Math.round(100 * (scoreRatio - expectedRatio));
   const clampedEloChange = Math.max(-50, Math.min(50, eloChange));
   const newElo = Math.max(100, u.eloRating + clampedEloChange);
   const newRank = getRankFromElo(newElo) as "bronze" | "silver" | "gold" | "platinum" | "diamond" | "master" | "grandmaster";
@@ -164,6 +167,11 @@ export async function updateUserStats(userId: number, score: number, distance: n
     eloRating: newElo,
     rank: newRank,
   }).where(eq(users.id, userId));
+
+  return {
+    eloChange: clampedEloChange,
+    newElo,
+  };
 }
 
 // Scoring logic
@@ -206,9 +214,9 @@ export function calculateEloChange(playerElo: number, opponentElo: number, score
   return Math.round(kFactor * (score - expectedScore));
 }
 
-export async function updateMultiplayerGameResults(playerResults: Array<{ userId: number; score: number }>) {
+export async function updateMultiplayerGameResults(playerResults: Array<{ userId: number; score: number }>, totalRounds: number = 5) {
   const db = getDb();
-  if (playerResults.length === 0) return;
+  if (playerResults.length === 0) return new Map<number, { eloChange: number; newElo: number }>();
 
   const userIds = playerResults.map((p) => p.userId);
   const dbUsers = await db.select().from(users).where(inArray(users.id, userIds));
@@ -247,12 +255,17 @@ export async function updateMultiplayerGameResults(playerResults: Array<{ userId
     const p = playerResults[0];
     const u = userMap.get(p.userId);
     if (u) {
-      const eloChange = Math.round((p.score - 12500) / 100);
+      const maxPossible = totalRounds * 5000;
+      const expectedRatio = Math.min(0.95, Math.max(0.1, 0.1 + (u.eloRating / 2500) * 0.8));
+      const scoreRatio = p.score / maxPossible;
+      const eloChange = Math.round(100 * (scoreRatio - expectedRatio));
       eloChanges.set(p.userId, Math.max(-50, Math.min(50, eloChange)));
     }
   }
 
   const winnerUserId = playerResults[0].userId; // Sorted by score desc
+  const resultsMap = new Map<number, { eloChange: number; newElo: number }>();
+
   for (const p of playerResults) {
     const u = userMap.get(p.userId);
     if (!u) continue;
@@ -285,5 +298,9 @@ export async function updateMultiplayerGameResults(playerResults: Array<{ userId
       score: p.score,
       timeframe: "all_time",
     });
+
+    resultsMap.set(p.userId, { eloChange, newElo });
   }
+
+  return resultsMap;
 }

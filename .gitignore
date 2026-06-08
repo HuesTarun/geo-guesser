@@ -38,3 +38,6 @@ build/
 # Test coverage
 coverage/
 .nyc_output/
+
+# Temp scratch folder
+scratch/

@@ -201,7 +201,7 @@ export const gameRouter = createRouter({
         const maxPossible = game.totalRounds * 5000;
         const isWin = newTotalScore > maxPossible * 0.5;
 
-        await updateUserStats(ctx.user!.id, newTotalScore, avgDistance, isWin, maxPossible);
+        const eloResult = await updateUserStats(ctx.user!.id, newTotalScore, avgDistance, isWin, maxPossible);
 
         // Add to leaderboard
         await addLeaderboardEntry({
@@ -256,6 +256,8 @@ export const gameRouter = createRouter({
           },
           gameComplete: true,
           finalScore: newTotalScore,
+          eloChange: eloResult?.eloChange,
+          newElo: eloResult?.newElo,
         };
       }
 

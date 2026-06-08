@@ -140,9 +140,17 @@ export default function Game() {
     },
   });
 
+  const utils = trpc.useUtils();
+
   const submitGuessMutation = trpc.game.submitGuess.useMutation({
     onSuccess: (data) => {
       gameState.submitGuessResult(data);
+      if (data.gameComplete) {
+        utils.localAuth.me.invalidate();
+        utils.user.getById.invalidate();
+        utils.user.getStats.invalidate();
+        utils.leaderboard.invalidate();
+      }
     },
   });
 
@@ -244,7 +252,7 @@ export default function Game() {
             {gameState.roundNumber} rounds completed
           </p>
 
-          <div className="text-center mb-8">
+          <div className="text-center mb-6">
             <div className="text-5xl font-bold text-[#E6C200] mb-2">
               {gameState.totalScore.toLocaleString()}
             </div>
@@ -252,6 +260,27 @@ export default function Game() {
               / {(gameState.totalRounds * 5000).toLocaleString()} possible
             </div>
           </div>
+
+          {gameState.lastGuess?.eloChange !== undefined && (
+            <div className="flex flex-col items-center justify-center bg-[#1A1D24] p-4 rounded-xl border border-gray-800/80 mb-6 w-1/2 mx-auto">
+              <div className="text-xs uppercase tracking-wider text-gray-400 font-semibold mb-1">
+                ELO Rating
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-2xl font-bold text-white">
+                  {gameState.lastGuess.newElo}
+                </span>
+                <span
+                  className={`text-sm font-extrabold ${
+                    gameState.lastGuess.eloChange >= 0 ? "text-green-400" : "text-red-400"
+                  }`}
+                >
+                  {gameState.lastGuess.eloChange >= 0 ? "+" : ""}
+                  {gameState.lastGuess.eloChange}
+                </span>
+              </div>
+            </div>
+          )}
 
           {/* Round breakdown */}
           <div className="space-y-2 mb-8">

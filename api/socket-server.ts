@@ -298,6 +298,11 @@ export function createSocketServer(httpServer: HttpServer) {
           return;
         }
 
+        // Reset player scores before starting the game
+        for (const player of lobby.players.values()) {
+          player.score = 0;
+        }
+
         lobby.locations = locations;
         lobby.status = "in_progress";
 
@@ -382,11 +387,24 @@ export function createSocketServer(httpServer: HttpServer) {
           username: p.username,
           avatar: p.avatar,
           score: p.score,
+          eloChange: 0,
+          newElo: 1000,
         }))
         .sort((a, b) => b.score - a.score);
 
       try {
-        await updateMultiplayerGameResults(finalScores);
+        const eloResults = await updateMultiplayerGameResults(
+          finalScores.map((s) => ({ userId: s.userId, score: s.score })),
+          lobby.settings.totalRounds
+        );
+        // Merge ELO changes into finalScores
+        finalScores.forEach((s) => {
+          const res = eloResults.get(s.userId);
+          if (res) {
+            s.eloChange = res.eloChange;
+            s.newElo = res.newElo;
+          }
+        });
       } catch (err) {
         console.error("Failed to update multiplayer game results in DB:", err);
       }

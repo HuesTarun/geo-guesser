@@ -93,6 +93,7 @@ export default function MultiplayerGame() {
 
   const { emit, on } = useSocket();
   const lobbyStore = useLobbyStore();
+  const utils = trpc.useUtils();
 
   const [roundNumber, setRoundNumber] = useState(1);
   const [totalScore, setTotalScore] = useState(0);
@@ -174,6 +175,10 @@ export default function MultiplayerGame() {
     const unsubFinalScores = on("game:final_scores", (data: any) => {
       setScores(data.scores);
       setStatus("game_over");
+      utils.localAuth.me.invalidate();
+      utils.user.getById.invalidate();
+      utils.user.getStats.invalidate();
+      utils.leaderboard.invalidate();
     });
 
     return () => {
@@ -286,7 +291,21 @@ export default function MultiplayerGame() {
               <div key={i} className="flex items-center justify-between p-3 bg-[#1A1D24] rounded-lg">
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-bold text-gray-400">#{i + 1}</span>
-                  <span className="font-medium">{s.username}</span>
+                  <div className="flex flex-col">
+                    <span className="font-medium text-white">{s.username}</span>
+                    {s.eloChange !== undefined && (
+                      <span className="text-xs text-gray-400 capitalize">
+                        {s.newElo} ELO (
+                        <span
+                          className={s.eloChange >= 0 ? "text-green-400 font-semibold" : "text-red-400 font-semibold"}
+                        >
+                          {s.eloChange >= 0 ? "+" : ""}
+                          {s.eloChange}
+                        </span>
+                        )
+                      </span>
+                    )}
+                  </div>
                 </div>
                 <span className="font-bold text-[#E6C200]">{s.score.toLocaleString()}</span>
               </div>
