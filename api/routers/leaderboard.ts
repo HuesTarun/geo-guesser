@@ -16,7 +16,83 @@ export const leaderboardRouter = createRouter({
     .query(async ({ input }) => {
       const db = getDb();
 
-      // Get entries with user info
+      if (input.category === "highest_elo") {
+        const results = await db
+          .select({
+            id: users.id,
+            userId: users.id,
+            score: users.eloRating,
+            timeframe: sql<string>`'all_time'`,
+            createdAt: users.createdAt,
+            userName: users.name,
+            userUsername: users.username,
+            userAvatar: users.avatar,
+            userRank: users.rank,
+            userCountry: users.country,
+          })
+          .from(users)
+          .where(sql`${users.eloRating} > 0`)
+          .orderBy(desc(users.eloRating))
+          .limit(input.limit);
+        return results;
+      }
+
+      if (input.category === "most_wins") {
+        const results = await db
+          .select({
+            id: users.id,
+            userId: users.id,
+            score: users.wins,
+            timeframe: sql<string>`'all_time'`,
+            createdAt: users.createdAt,
+            userName: users.name,
+            userUsername: users.username,
+            userAvatar: users.avatar,
+            userRank: users.rank,
+            userCountry: users.country,
+          })
+          .from(users)
+          .where(sql`${users.wins} > 0`)
+          .orderBy(desc(users.wins))
+          .limit(input.limit);
+        return results;
+      }
+
+      if (input.category === "best_accuracy") {
+        const results = await db
+          .select({
+            id: users.id,
+            userId: users.id,
+            score: users.bestScore,
+            timeframe: sql<string>`'all_time'`,
+            createdAt: users.createdAt,
+            userName: users.name,
+            userUsername: users.username,
+            userAvatar: users.avatar,
+            userRank: users.rank,
+            userCountry: users.country,
+          })
+          .from(users)
+          .where(sql`${users.bestScore} > 0`)
+          .orderBy(desc(users.bestScore))
+          .limit(input.limit);
+        return results;
+      }
+
+      // Default: highest_score (query leaderboardEntries with dynamic timeframe filtering)
+      const conditions = [eq(leaderboardEntries.category, "highest_score")];
+      const now = new Date();
+      if (input.timeframe === "daily") {
+        const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+        conditions.push(sql`${leaderboardEntries.createdAt} >= ${oneDayAgo}`);
+      } else if (input.timeframe === "weekly") {
+        const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        conditions.push(sql`${leaderboardEntries.createdAt} >= ${sevenDaysAgo}`);
+      } else if (input.timeframe === "monthly") {
+        const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+        conditions.push(sql`${leaderboardEntries.createdAt} >= ${thirtyDaysAgo}`);
+      }
+
       const entries = await db
         .select({
           id: leaderboardEntries.id,
@@ -32,12 +108,7 @@ export const leaderboardRouter = createRouter({
         })
         .from(leaderboardEntries)
         .leftJoin(users, eq(leaderboardEntries.userId, users.id))
-        .where(
-          and(
-            eq(leaderboardEntries.category, input.category),
-            eq(leaderboardEntries.timeframe, input.timeframe)
-          )
-        )
+        .where(and(...conditions))
         .orderBy(desc(leaderboardEntries.score))
         .limit(input.limit);
 
@@ -56,6 +127,86 @@ export const leaderboardRouter = createRouter({
     .query(async ({ input }) => {
       const db = getDb();
 
+      if (input.category === "highest_elo") {
+        const results = await db
+          .select({
+            id: users.id,
+            userId: users.id,
+            score: users.eloRating,
+            timeframe: sql<string>`'all_time'`,
+            createdAt: users.createdAt,
+            userName: users.name,
+            userUsername: users.username,
+            userAvatar: users.avatar,
+            userRank: users.rank,
+            userCountry: users.country,
+          })
+          .from(users)
+          .where(and(sql`${users.eloRating} > 0`, eq(users.country, input.country)))
+          .orderBy(desc(users.eloRating))
+          .limit(input.limit);
+        return results;
+      }
+
+      if (input.category === "most_wins") {
+        const results = await db
+          .select({
+            id: users.id,
+            userId: users.id,
+            score: users.wins,
+            timeframe: sql<string>`'all_time'`,
+            createdAt: users.createdAt,
+            userName: users.name,
+            userUsername: users.username,
+            userAvatar: users.avatar,
+            userRank: users.rank,
+            userCountry: users.country,
+          })
+          .from(users)
+          .where(and(sql`${users.wins} > 0`, eq(users.country, input.country)))
+          .orderBy(desc(users.wins))
+          .limit(input.limit);
+        return results;
+      }
+
+      if (input.category === "best_accuracy") {
+        const results = await db
+          .select({
+            id: users.id,
+            userId: users.id,
+            score: users.bestScore,
+            timeframe: sql<string>`'all_time'`,
+            createdAt: users.createdAt,
+            userName: users.name,
+            userUsername: users.username,
+            userAvatar: users.avatar,
+            userRank: users.rank,
+            userCountry: users.country,
+          })
+          .from(users)
+          .where(and(sql`${users.bestScore} > 0`, eq(users.country, input.country)))
+          .orderBy(desc(users.bestScore))
+          .limit(input.limit);
+        return results;
+      }
+
+      // Default: highest_score
+      const conditions = [
+        eq(leaderboardEntries.category, "highest_score"),
+        eq(users.country, input.country),
+      ];
+      const now = new Date();
+      if (input.timeframe === "daily") {
+        const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+        conditions.push(sql`${leaderboardEntries.createdAt} >= ${oneDayAgo}`);
+      } else if (input.timeframe === "weekly") {
+        const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        conditions.push(sql`${leaderboardEntries.createdAt} >= ${sevenDaysAgo}`);
+      } else if (input.timeframe === "monthly") {
+        const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+        conditions.push(sql`${leaderboardEntries.createdAt} >= ${thirtyDaysAgo}`);
+      }
+
       const entries = await db
         .select({
           id: leaderboardEntries.id,
@@ -71,13 +222,7 @@ export const leaderboardRouter = createRouter({
         })
         .from(leaderboardEntries)
         .leftJoin(users, eq(leaderboardEntries.userId, users.id))
-        .where(
-          and(
-            eq(leaderboardEntries.category, input.category),
-            eq(leaderboardEntries.timeframe, input.timeframe),
-            eq(users.country, input.country)
-          )
-        )
+        .where(and(...conditions))
         .orderBy(desc(leaderboardEntries.score))
         .limit(input.limit);
 

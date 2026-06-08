@@ -10,6 +10,7 @@ interface LobbyPlayer {
   isReady: boolean;
   isHost: boolean;
   score: number;
+  connected?: boolean;
 }
 
 interface Lobby {
@@ -84,6 +85,40 @@ export function createSocketServer(httpServer: HttpServer) {
         return;
       }
 
+      // Check if user is reconnecting
+      if (lobby.players.has(socket.data.userId)) {
+        const existingPlayer = lobby.players.get(socket.data.userId)!;
+        existingPlayer.socketId = socket.id;
+        existingPlayer.connected = true;
+
+        socket.join(`lobby:${data.code}`);
+
+        // Send chat history and current settings to the joining player
+        socket.emit("lobby:chat_history", lobby.messages);
+        socket.emit("lobby:joined_data", {
+          settings: lobby.settings,
+        });
+
+        // Notify all players in lobby of reconnection
+        io.to(`lobby:${data.code}`).emit("lobby:player_joined", {
+          player: {
+            userId: existingPlayer.userId,
+            username: existingPlayer.username,
+            avatar: existingPlayer.avatar,
+            isReady: existingPlayer.isReady,
+            isHost: existingPlayer.isHost,
+          },
+          players: Array.from(lobby.players.values()).map((p) => ({
+            userId: p.userId,
+            username: p.username,
+            avatar: p.avatar,
+            isReady: p.isReady,
+            isHost: p.isHost,
+          })),
+        });
+        return;
+      }
+
       if (lobby.status !== "waiting") {
         socket.emit("lobby:error", { message: "Game already started" });
         return;
@@ -99,6 +134,7 @@ export function createSocketServer(httpServer: HttpServer) {
         isReady: false,
         isHost: lobby.hostId === socket.data.userId,
         score: 0,
+        connected: true,
       };
 
       lobby.players.set(socket.data.userId, player);
@@ -374,19 +410,32 @@ export function createSocketServer(httpServer: HttpServer) {
       for (const [code, lobby] of lobbies) {
         for (const [userId, player] of lobby.players) {
           if (player.socketId === socket.id) {
-            lobby.players.delete(userId);
-            io.to(`lobby:${code}`).emit("lobby:player_left", {
-              userId,
-              players: Array.from(lobby.players.values()).map((p) => ({
-                userId: p.userId,
-                username: p.username,
-                avatar: p.avatar,
-                isReady: p.isReady,
-                isHost: p.isHost,
-              })),
-            });
+            if (lobby.status === "in_progress") {
+              // Mark as offline but keep player record so score is preserved at game end
+              player.connected = false;
+            } else {
+              lobby.players.delete(userId);
+            }
 
-            if (lobby.players.size === 0) {
+            // Only notify left if they are actually deleted from the lobby map
+            if (lobby.status !== "in_progress") {
+              io.to(`lobby:${code}`).emit("lobby:player_left", {
+                userId,
+                players: Array.from(lobby.players.values()).map((p) => ({
+                  userId: p.userId,
+                  username: p.username,
+                  avatar: p.avatar,
+                  isReady: p.isReady,
+                  isHost: p.isHost,
+                })),
+              });
+            }
+
+            // Delete lobby only if empty or all players are offline/disconnected
+            const allDisconnected = Array.from(lobby.players.values()).every(
+              (p) => p.connected === false
+            );
+            if (lobby.players.size === 0 || allDisconnected) {
               lobbies.delete(code);
             }
             break;

@@ -277,5 +277,13 @@ export async function updateMultiplayerGameResults(playerResults: Array<{ userId
         bestScore: Math.max(u.bestScore, p.score),
       })
       .where(eq(users.id, p.userId));
+
+    // Add to leaderboardEntries
+    await db.insert(leaderboardEntries).values({
+      userId: p.userId,
+      category: "highest_score",
+      score: p.score,
+      timeframe: "all_time",
+    });
   }
 }
