@@ -83,7 +83,12 @@ export const gameRouter = createRouter({
         location = await getRandomLocation(input.region);
       }
 
-      if (!location) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "No locations available" });
+      if (!location) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "No playable locations with street view for this region. Try Worldwide or another region.",
+        });
+      }
 
       const roundId = await createRound({
         gameId,
@@ -396,7 +401,12 @@ export const gameRouter = createRouter({
 
       // Get first location
       const location = await getRandomLocation();
-      if (!location) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "No locations available" });
+      if (!location) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "No playable locations with street view for this region. Try Worldwide or another region.",
+        });
+      }
 
       return {
         challengeCode: ch.code,

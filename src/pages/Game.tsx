@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from "react-router";
 
 import { trpc } from "@/providers/trpc";
 import { useGameStore } from "@/stores/gameStore";
-import { MapillaryViewer } from "@/components/MapillaryViewer";
+import { StreetViewPanel } from "@/components/StreetViewPanel";
 import { Clock, ChevronRight, RotateCcw, Home, Lock, Loader2, Trophy, Share2, Check } from "lucide-react";
 import { toast } from "sonner";
 import { MapContainer, TileLayer, Marker, useMapEvents, Polyline, useMap } from "react-leaflet";
@@ -69,120 +69,6 @@ function MapBoundsHandler({
   return null;
 }
 
-function PanZoomImage({ src, alt }: { src: string; alt: string }) {
-  const [scale, setScale] = useState(1);
-  const [position, setPosition] = useState({ x: 0, y: 0 });
-  const [isDragging, setIsDragging] = useState(false);
-  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
-  const containerRef = useRef<HTMLDivElement>(null);
-
-  const handleWheel = (e: React.WheelEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    const zoomFactor = 0.15;
-    const newScale = e.deltaY < 0 ? Math.min(scale + zoomFactor, 4) : Math.max(scale - zoomFactor, 1);
-    setScale(newScale);
-    if (newScale === 1) {
-      setPosition({ x: 0, y: 0 });
-    }
-  };
-
-  const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (e.button !== 0) return; // Only left click
-    setIsDragging(true);
-    setDragStart({ x: e.clientX - position.x, y: e.clientY - position.y });
-  };
-
-  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!isDragging) return;
-    setPosition({
-      x: e.clientX - dragStart.x,
-      y: e.clientY - dragStart.y,
-    });
-  };
-
-  const handleMouseUp = () => {
-    setIsDragging(false);
-  };
-
-  const handleTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
-    if (e.touches.length === 1) {
-      setIsDragging(true);
-      const touch = e.touches[0];
-      setDragStart({ x: touch.clientX - position.x, y: touch.clientY - position.y });
-    }
-  };
-
-  const handleTouchMove = (e: React.TouchEvent<HTMLDivElement>) => {
-    if (!isDragging) return;
-    if (e.touches.length === 1) {
-      const touch = e.touches[0];
-      setPosition({
-        x: touch.clientX - dragStart.x,
-        y: touch.clientY - dragStart.y,
-      });
-    }
-  };
-
-  const zoomIn = () => {
-    setScale((s) => Math.min(s + 0.5, 4));
-  };
-
-  const zoomOut = () => {
-    setScale((s) => {
-      const newScale = Math.max(s - 0.5, 1);
-      if (newScale === 1) {
-        setPosition({ x: 0, y: 0 });
-      }
-      return newScale;
-    });
-  };
-
-  return (
-    <div
-      ref={containerRef}
-      onWheel={handleWheel}
-      onMouseDown={handleMouseDown}
-      onMouseMove={handleMouseMove}
-      onMouseUp={handleMouseUp}
-      onMouseLeave={handleMouseUp}
-      onTouchStart={handleTouchStart}
-      onTouchMove={handleTouchMove}
-      onTouchEnd={handleMouseUp}
-      className="w-full h-full overflow-hidden cursor-grab active:cursor-grabbing select-none relative"
-    >
-      <img
-        src={src}
-        alt={alt}
-        className="w-full h-full object-cover transition-transform duration-100 ease-out pointer-events-none"
-        style={{
-          transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`,
-        }}
-      />
-      <div className="absolute top-4 right-4 bg-black/60 backdrop-blur-sm px-3 py-1.5 rounded-lg text-[10px] text-gray-300 border border-gray-700/50 pointer-events-none hidden sm:block">
-        Scroll to Zoom · Drag to Pan
-      </div>
-      
-      {/* Zoom control buttons for mobile/desktop */}
-      <div className="absolute bottom-4 right-4 flex gap-1.5 z-10">
-        <button
-          onClick={zoomOut}
-          disabled={scale === 1}
-          className="w-10 h-10 bg-black/70 backdrop-blur-md text-white font-bold rounded-xl border border-gray-700/50 flex items-center justify-center hover:bg-black/90 active:scale-95 transition-all disabled:opacity-50"
-        >
-          -
-        </button>
-        <button
-          onClick={zoomIn}
-          disabled={scale === 4}
-          className="w-10 h-10 bg-black/70 backdrop-blur-md text-white font-bold rounded-xl border border-gray-700/50 flex items-center justify-center hover:bg-black/90 active:scale-95 transition-all disabled:opacity-50"
-        >
-          +
-        </button>
-      </div>
-    </div>
-  );
-}
-
 export default function Game() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -190,13 +76,14 @@ export default function Game() {
   const gameState = useGameStore();
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const [useFlickrFallback, setUseFlickrFallback] = useState(false);
+  const [mapillaryFailed, setMapillaryFailed] = useState(false);
+  const handleMapillaryFailed = useCallback(() => setMapillaryFailed(true), []);
   const { data: mapillaryTokenData } = trpc.game.getMapillaryToken.useQuery(undefined, {
     staleTime: Infinity,
   });
 
   useEffect(() => {
-    setUseFlickrFallback(false);
+    setMapillaryFailed(false);
   }, [gameState.roundNumber]);
 
   const mode = (location.state?.mode as string) || "classic";
@@ -465,20 +352,14 @@ export default function Game() {
         {/* Street View Image */}
         <div className="flex-1 bg-[#1A1D24] relative flex items-center justify-center min-h-[200px] overflow-hidden">
           {gameState.currentLocation ? (
-            <>
-              {gameState.currentLocation.streetViewId && mapillaryTokenData?.token && !useFlickrFallback ? (
-                <MapillaryViewer
-                  accessToken={mapillaryTokenData.token}
-                  imageId={gameState.currentLocation.streetViewId}
-                  onFallback={() => setUseFlickrFallback(true)}
-                />
-              ) : (
-                <PanZoomImage 
-                  src={gameState.currentLocation.imageUrl || `https://loremflickr.com/800/600/${encodeURIComponent(gameState.currentLocation.city || gameState.currentLocation.country || "city")}?lock=${gameState.currentLocation.id || gameState.roundNumber}`} 
-                  alt="Find this location" 
-                />
-              )}
-            </>
+            <StreetViewPanel
+              accessToken={mapillaryTokenData?.token}
+              streetViewId={gameState.currentLocation.streetViewId}
+              city={gameState.currentLocation.city}
+              country={gameState.currentLocation.country}
+              mapillaryFailed={mapillaryFailed}
+              onMapillaryFailed={handleMapillaryFailed}
+            />
           ) : (
             <div className="text-center">
               <Loader2 className="w-8 h-8 text-[#E6C200] animate-spin mx-auto mb-2" />

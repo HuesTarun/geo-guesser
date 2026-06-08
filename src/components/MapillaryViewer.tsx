@@ -11,57 +11,69 @@ interface MapillaryViewerProps {
 
 export function MapillaryViewer({ accessToken, imageId, onFallback }: MapillaryViewerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const onFallbackRef = useRef(onFallback);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
 
+  onFallbackRef.current = onFallback;
+
   useEffect(() => {
-    if (!containerRef.current || !accessToken || !imageId) {
+    const container = containerRef.current;
+    if (!container || !accessToken || !imageId) {
       setLoading(false);
       return;
     }
 
+    let viewer: Viewer | null = null;
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+    let cancelled = false;
+
+    const handleLoadSuccess = () => {
+      if (cancelled) return;
+      if (timeoutId) clearTimeout(timeoutId);
+      setLoading(false);
+      setError(false);
+    };
+
+    const handleLoadFailure = () => {
+      if (cancelled) return;
+      if (timeoutId) clearTimeout(timeoutId);
+      setError(true);
+      setLoading(false);
+      onFallbackRef.current();
+    };
+
     setLoading(true);
     setError(false);
 
-    let viewer: Viewer | null = null;
-    let timeoutId: ReturnType<typeof setTimeout> | null = null;
-
     try {
-      // Initialize Mapillary Viewer
       viewer = new Viewer({
         accessToken,
-        container: containerRef.current,
-        imageId,
+        container,
+        imageId: String(imageId),
         component: {
-          cover: false, // Disable the Mapillary logo cover/start page
-          direction: true, // Show navigation arrows
+          cover: false,
+          direction: true,
         },
       });
 
-      // Handle successful load
-      viewer.on("image", () => {
-        setLoading(false);
-      });
+      viewer.on("image", handleLoadSuccess);
+      viewer.on("load", handleLoadSuccess);
+      viewer.on("navigable", handleLoadSuccess);
 
-      // Implement a 6-second timeout fallback in case of loading errors/failures
       timeoutId = setTimeout(() => {
-        setLoading((currentLoading) => {
-          if (currentLoading) {
-            console.warn("[MapillaryViewer] Load timed out, falling back to static view.");
-            setError(true);
-            onFallback();
-          }
-          return false;
-        });
-      }, 6000);
+        if (!cancelled) {
+          console.warn("[MapillaryViewer] Load timed out.");
+          handleLoadFailure();
+        }
+      }, 20000);
     } catch (err) {
       console.error("Failed to initialize Mapillary Viewer:", err);
-      setError(true);
-      setLoading(false);
-      onFallback();
+      handleLoadFailure();
     }
 
     return () => {
+      cancelled = true;
       if (timeoutId) clearTimeout(timeoutId);
       if (viewer) {
         try {
@@ -71,23 +83,23 @@ export function MapillaryViewer({ accessToken, imageId, onFallback }: MapillaryV
         }
       }
     };
-  }, [accessToken, imageId, onFallback]);
+  }, [accessToken, imageId]);
 
   return (
-    <div className="relative w-full h-full bg-[#1A1D24] overflow-hidden flex items-center justify-center">
-      <div ref={containerRef} className="w-full h-full" style={{ visibility: loading || error ? "hidden" : "visible" }} />
-      
-      {loading && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#1A1D24] z-10">
+    <div className="relative w-full h-full bg-[#1A1D24] overflow-hidden">
+      <div ref={containerRef} className="absolute inset-0 w-full h-full" />
+
+      {loading && !error && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#1A1D24]/80 z-10 pointer-events-none">
           <Loader2 className="w-8 h-8 text-[#E6C200] animate-spin mb-2" />
-          <p className="text-gray-400 text-sm">Loading 3D Street Panorama...</p>
+          <p className="text-gray-400 text-sm">Loading street panorama...</p>
         </div>
       )}
-      
+
       {error && (
         <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#1A1D24] text-center px-4 z-10">
           <p className="text-red-400 text-sm font-medium mb-1">Could not load interactive view.</p>
-          <p className="text-gray-500 text-xs">Switching to standard view...</p>
+          <p className="text-gray-500 text-xs">Use the map to place your guess.</p>
         </div>
       )}
     </div>

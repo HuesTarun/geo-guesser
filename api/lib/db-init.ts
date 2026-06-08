@@ -1,7 +1,7 @@
 import { getDb } from "../queries/connection";
 import { migrate } from "drizzle-orm/postgres-js/migrator";
 import { locations } from "../../db/schema";
-import { seedLocations } from "../../db/locations-data";
+import { allSeedLocations } from "../../db/locations-data";
 import { sql, eq } from "drizzle-orm";
 import { env } from "./env";
 import path from "path";
@@ -21,13 +21,14 @@ export async function initializeDatabase() {
     throw err;
   }
 
-  // 2. Seed initial and new locations
+  // 2. Seed initial and new locations, and update streetViewId from seed data
   try {
     console.log("[DB] Syncing locations database...");
     let addedCount = 0;
-    for (const loc of seedLocations) {
+    let updatedCount = 0;
+    for (const loc of allSeedLocations) {
       const exists = await db
-        .select({ id: locations.id })
+        .select({ id: locations.id, streetViewId: locations.streetViewId })
         .from(locations)
         .where(
           sql`abs(${locations.lat} - ${loc.lat}) < 0.0001 AND abs(${locations.lng} - ${loc.lng}) < 0.0001`
@@ -37,11 +38,23 @@ export async function initializeDatabase() {
       if (exists.length === 0) {
         await db.insert(locations).values(loc);
         addedCount++;
+      } else if (loc.streetViewId && (!exists[0].streetViewId || exists[0].streetViewId === "")) {
+        // Update existing row with streetViewId from seed data if it doesn't have one
+        await db
+          .update(locations)
+          .set({ streetViewId: loc.streetViewId })
+          .where(eq(locations.id, exists[0].id));
+        updatedCount++;
+        console.log(`[DB] Updated streetViewId for ${loc.city || loc.country} from seed data.`);
       }
     }
     if (addedCount > 0) {
       console.log(`[DB] Seeded ${addedCount} new locations successfully.`);
-    } else {
+    }
+    if (updatedCount > 0) {
+      console.log(`[DB] Updated ${updatedCount} existing locations with Mapillary IDs from seed data.`);
+    }
+    if (addedCount === 0 && updatedCount === 0) {
       console.log("[DB] Locations database is up-to-date.");
     }
 
@@ -59,7 +72,9 @@ export async function initializeDatabase() {
           console.log(`[DB] Found ${locationsWithoutStreetView.length} locations without streetViewId.`);
           for (const loc of locationsWithoutStreetView) {
             try {
-              const mlyUrl = `https://graph.mapillary.com/images?access_token=${env.mapillaryAccessToken}&lat=${loc.lat}&lng=${loc.lng}&radius=10000&limit=1`;
+              // Use lat/lng without radius — this is the correct working format.
+              // The Mapillary v4 API returns the nearest image to the given coordinates.
+              const mlyUrl = `https://graph.mapillary.com/images?access_token=${env.mapillaryAccessToken}&lat=${loc.lat}&lng=${loc.lng}&limit=1`;
               const res = await fetch(mlyUrl);
               if (res.ok) {
                 const data = (await res.json()) as any;
@@ -71,10 +86,11 @@ export async function initializeDatabase() {
                     .where(eq(locations.id, loc.id));
                   console.log(`[DB] Updated location ${loc.city || loc.country} (id: ${loc.id}) with Mapillary image ID: ${imageId}`);
                 } else {
-                  console.log(`[DB] No Mapillary image found within 10km for location ${loc.city || loc.country} (id: ${loc.id})`);
+                  console.log(`[DB] No Mapillary image found near location ${loc.city || loc.country} (id: ${loc.id})`);
                 }
               } else {
-                console.error(`[DB] Mapillary API error: ${res.statusText}`);
+                const errBody = await res.text().catch(() => "(unreadable)");
+                console.error(`[DB] Mapillary API error for ${loc.city || loc.country}: ${res.status} ${res.statusText} — ${errBody.substring(0, 200)}`);
               }
               // Sleep for 200ms to respect rate limits
               await new Promise((resolve) => setTimeout(resolve, 200));
@@ -93,6 +109,34 @@ export async function initializeDatabase() {
     } else {
       console.log("[DB] MAPILLARY_ACCESS_TOKEN not set; skipping streetViewId population.");
     }
+
+    // 4. Only locations with street view are playable in games
+    await db
+      .update(locations)
+      .set({ isActive: false })
+      .where(sql`${locations.streetViewId} IS NULL OR ${locations.streetViewId} = ''`);
+
+    await db
+      .update(locations)
+      .set({ isActive: true })
+      .where(sql`${locations.streetViewId} IS NOT NULL AND ${locations.streetViewId} != ''`);
+
+    const playableResult = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(locations)
+      .where(
+        sql`${locations.isActive} = true AND ${locations.streetViewId} IS NOT NULL AND ${locations.streetViewId} != ''`
+      );
+
+    const inactiveResult = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(locations)
+      .where(eq(locations.isActive, false));
+
+    console.log(
+      `[DB] Playable locations (street view only): ${playableResult[0]?.count ?? 0}. ` +
+        `Deactivated (no coverage): ${inactiveResult[0]?.count ?? 0}.`
+    );
   } catch (err) {
     console.error("[DB] Error checking/seeding locations:", err);
   }

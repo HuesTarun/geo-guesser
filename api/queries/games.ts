@@ -2,6 +2,7 @@ import { eq, desc, and, sql, notInArray, inArray } from "drizzle-orm";
 import { getDb } from "./connection";
 import { games, rounds, locations, users, leaderboardEntries } from "@db/schema";
 import type { InsertGame, InsertRound } from "@db/schema";
+import { hasStreetViewCondition } from "./location-filters";
 
 export async function createGame(data: InsertGame) {
   const db = getDb();
@@ -56,18 +57,11 @@ export async function getRandomLocation(region?: string, difficulty?: string, ex
     conditions.push(notInArray(locations.id, excludeIds));
   }
   conditions.push(eq(locations.isActive, true));
+  conditions.push(hasStreetViewCondition());
 
-  const query = conditions.length > 0
-    ? db.select().from(locations).where(and(...conditions))
-    : db.select().from(locations);
+  const allLocations = await db.select().from(locations).where(and(...conditions));
 
-  const allLocations = await query;
-  
-  if (allLocations.length === 0) {
-    // Fallback: return any location
-    const fallback = await db.select().from(locations).limit(1);
-    return fallback[0] || null;
-  }
+  if (allLocations.length === 0) return null;
 
   const randomIndex = Math.floor(Math.random() * allLocations.length);
   return allLocations[randomIndex];
@@ -84,21 +78,32 @@ export async function getRandomLocations(region?: string, limit: number = 5, exc
     conditions.push(notInArray(locations.id, excludeIds));
   }
   conditions.push(eq(locations.isActive, true));
+  conditions.push(hasStreetViewCondition());
 
-  const query = conditions.length > 0
-    ? db.select().from(locations).where(and(...conditions))
-    : db.select().from(locations);
+  const allLocations = await db.select().from(locations).where(and(...conditions));
 
-  const allLocations = await query;
-  
-  if (allLocations.length === 0) {
-    // Fallback: return limit locations
-    return db.select().from(locations).limit(limit);
-  }
+  if (allLocations.length === 0) return [];
 
-  // Shuffle and limit
   const shuffled = [...allLocations].sort(() => 0.5 - Math.random());
   return shuffled.slice(0, limit);
+}
+
+export async function countPlayableLocations(region?: string) {
+  const db = getDb();
+  const conditions = [eq(locations.isActive, true), hasStreetViewCondition()];
+
+  if (region && region !== "worldwide") {
+    conditions.push(
+      eq(locations.region, region as "europe" | "asia" | "africa" | "north_america" | "south_america" | "oceania")
+    );
+  }
+
+  const result = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(locations)
+    .where(and(...conditions));
+
+  return result[0]?.count ?? 0;
 }
 
 export async function getGameHistory(userId: number, page: number = 1, limit: number = 20) {

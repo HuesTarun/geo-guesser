@@ -1,4 +1,30 @@
-export const seedLocations = [
+// Locations seed data - streetViewId values will be auto-populated by db-init.ts on startup
+// using the Mapillary API (lat/lng lookup). Any IDs listed here are pre-verified correct IDs.
+
+import { extraSeedLocations } from "./locations-extra";
+
+type Region =
+  | "europe"
+  | "asia"
+  | "africa"
+  | "north_america"
+  | "south_america"
+  | "oceania"
+  | "antarctica";
+
+type Difficulty = "easy" | "medium" | "hard" | "expert";
+
+export type SeedLocation = {
+  lat: number;
+  lng: number;
+  country: string;
+  city: string;
+  region: Region;
+  difficulty: Difficulty;
+  streetViewId?: string;
+};
+
+export const seedLocations: SeedLocation[] = [
   // Europe - Easy
   { lat: 48.8566, lng: 2.3522, country: "France", city: "Paris", region: "europe" as const, difficulty: "easy" as const },
   { lat: 51.5074, lng: -0.1278, country: "United Kingdom", city: "London", region: "europe" as const, difficulty: "easy" as const },
@@ -236,3 +262,6 @@ export const seedLocations = [
   { lat: -51.6978, lng: -57.8517, country: "Falkland Islands", city: "Stanley", region: "south_america" as const, difficulty: "expert" as const },
   { lat: -15.9277, lng: -5.7175, country: "Saint Helena", city: "Jamestown", region: "africa" as const, difficulty: "expert" as const },
 ];
+
+/** All seed locations (base + extra Mapillary-friendly cities). */
+export const allSeedLocations: SeedLocation[] = [...seedLocations, ...extraSeedLocations];

@@ -232,6 +232,17 @@ export function createSocketServer(httpServer: HttpServer) {
           lobby.settings.region,
           lobby.settings.totalRounds
         );
+
+        if (locations.length < lobby.settings.totalRounds) {
+          socket.emit("lobby:error", {
+            message:
+              locations.length === 0
+                ? "No playable locations with street view for this region."
+                : `Not enough street-view locations for ${lobby.settings.totalRounds} rounds (only ${locations.length} available).`,
+          });
+          return;
+        }
+
         lobby.locations = locations;
         lobby.status = "in_progress";
 
