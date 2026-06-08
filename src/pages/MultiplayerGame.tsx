@@ -336,6 +336,7 @@ export default function MultiplayerGame() {
             country={currentLocation?.country}
             mapillaryFailed={mapillaryFailed}
             onMapillaryFailed={handleMapillaryFailed}
+            allowMovement={lobbyStore.settings?.allowMovement}
           />
           <div className="absolute bottom-4 left-4 bg-black/75 backdrop-blur-md px-4 py-2 rounded-xl text-xs border border-gray-700/50 pointer-events-none select-none">
             <span className="text-[#E6C200] font-bold uppercase tracking-wider">

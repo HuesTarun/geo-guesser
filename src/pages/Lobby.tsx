@@ -113,12 +113,26 @@ export default function Lobby() {
       navigate("/multiplayer");
     });
 
+    const unsubSettingsUpdated = on("lobby:settings_updated", (data: any) => {
+      if (data?.settings) {
+        lobbyStore.updateSettings(data.settings);
+      }
+    });
+
+    const unsubJoinedData = on("lobby:joined_data", (data: any) => {
+      if (data?.settings) {
+        lobbyStore.updateSettings(data.settings);
+      }
+    });
+
     return () => {
       unsubPlayerJoined?.();
       unsubPlayerLeft?.();
       unsubMessage?.();
       unsubChatHistory?.();
       unsubGameStarted?.();
+      unsubSettingsUpdated?.();
+      unsubJoinedData?.();
     };
   }, [lobbyStore.lobbyCode]);
 
@@ -221,6 +235,14 @@ export default function Lobby() {
     );
   }
 
+  const handleUpdateSettings = (newSettings: Partial<typeof lobbyStore.settings>) => {
+    lobbyStore.updateSettings(newSettings);
+    emit("lobby:update_settings", {
+      code: lobbyStore.lobbyCode,
+      settings: newSettings,
+    });
+  };
+
   // Lobby Screen
   return (
     <div className="max-w-4xl mx-auto px-4 py-6">
@@ -257,15 +279,13 @@ export default function Lobby() {
                 >
                   <UserPlus className="w-5 h-5" />
                 </button>
-                {lobbyStore.isHost && (
-                  <button
-                    onClick={() => setShowSettings(!showSettings)}
-                    className="p-2 hover:bg-white/5 rounded-lg transition-colors"
-                    title="Lobby Settings"
-                  >
-                    <Settings className="w-5 h-5 text-gray-400" />
-                  </button>
-                )}
+                <button
+                  onClick={() => setShowSettings(!showSettings)}
+                  className="p-2 hover:bg-white/5 rounded-lg transition-colors"
+                  title="Lobby Settings"
+                >
+                  <Settings className="w-5 h-5 text-gray-400" />
+                </button>
                 <button
                   onClick={handleLeaveLobby}
                   className="p-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg transition-colors flex items-center gap-1.5 text-sm font-medium"
@@ -278,15 +298,16 @@ export default function Lobby() {
             </div>
 
             {/* Settings Panel */}
-            {showSettings && lobbyStore.isHost && (
+            {showSettings && (
               <div className="mb-4 p-4 bg-[#1A1D24] rounded-xl space-y-3">
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="text-xs text-gray-400 mb-1 block">Region</label>
                     <select
                       value={lobbyStore.settings.region}
-                      onChange={(e) => lobbyStore.updateSettings({ region: e.target.value })}
-                      className="w-full px-3 py-2 bg-[#252830] border border-gray-700/50 rounded-lg text-sm"
+                      onChange={(e) => handleUpdateSettings({ region: e.target.value })}
+                      disabled={!lobbyStore.isHost}
+                      className="w-full px-3 py-2 bg-[#252830] border border-gray-700/50 rounded-lg text-sm disabled:opacity-75"
                     >
                       {["worldwide", "europe", "asia", "africa", "north_america", "south_america", "oceania"].map((r) => (
                         <option key={r} value={r}>{r.replace("_", " ")}</option>
@@ -297,8 +318,9 @@ export default function Lobby() {
                     <label className="text-xs text-gray-400 mb-1 block">Mode</label>
                     <select
                       value={lobbyStore.settings.mode}
-                      onChange={(e) => lobbyStore.updateSettings({ mode: e.target.value })}
-                      className="w-full px-3 py-2 bg-[#252830] border border-gray-700/50 rounded-lg text-sm"
+                      onChange={(e) => handleUpdateSettings({ mode: e.target.value })}
+                      disabled={!lobbyStore.isHost}
+                      className="w-full px-3 py-2 bg-[#252830] border border-gray-700/50 rounded-lg text-sm disabled:opacity-75"
                     >
                       {["classic", "country_streak", "time_attack", "no_move"].map((m) => (
                         <option key={m} value={m}>{m.replace("_", " ")}</option>
@@ -312,8 +334,9 @@ export default function Lobby() {
                       min={1}
                       max={20}
                       value={lobbyStore.settings.totalRounds}
-                      onChange={(e) => lobbyStore.updateSettings({ totalRounds: Number(e.target.value) })}
-                      className="w-full px-3 py-2 bg-[#252830] border border-gray-700/50 rounded-lg text-sm"
+                      onChange={(e) => handleUpdateSettings({ totalRounds: Number(e.target.value) })}
+                      disabled={!lobbyStore.isHost}
+                      className="w-full px-3 py-2 bg-[#252830] border border-gray-700/50 rounded-lg text-sm disabled:opacity-75"
                     />
                   </div>
                   <div>
@@ -323,8 +346,22 @@ export default function Lobby() {
                       min={30}
                       max={300}
                       value={lobbyStore.settings.roundTime}
-                      onChange={(e) => lobbyStore.updateSettings({ roundTime: Number(e.target.value) })}
-                      className="w-full px-3 py-2 bg-[#252830] border border-gray-700/50 rounded-lg text-sm"
+                      onChange={(e) => handleUpdateSettings({ roundTime: Number(e.target.value) })}
+                      disabled={!lobbyStore.isHost}
+                      className="w-full px-3 py-2 bg-[#252830] border border-gray-700/50 rounded-lg text-sm disabled:opacity-75"
+                    />
+                  </div>
+                  <div className="col-span-2 flex items-center justify-between p-2 bg-[#252830] rounded-lg border border-gray-700/50 mt-1">
+                    <div className="flex flex-col">
+                      <span className="text-xs font-semibold text-white">Allow Movement</span>
+                      <span className="text-[10px] text-gray-400">Let players move along the street panorama</span>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={lobbyStore.settings.allowMovement}
+                      onChange={(e) => handleUpdateSettings({ allowMovement: e.target.checked })}
+                      disabled={!lobbyStore.isHost}
+                      className="w-4 h-4 rounded border-gray-700 bg-[#1A1D24] text-[#E6C200] focus:ring-[#E6C200] disabled:opacity-75"
                     />
                   </div>
                 </div>

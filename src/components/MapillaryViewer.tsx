@@ -7,9 +7,10 @@ interface MapillaryViewerProps {
   accessToken: string;
   imageId: string;
   onFallback: () => void;
+  allowMovement?: boolean;
 }
 
-export function MapillaryViewer({ accessToken, imageId, onFallback }: MapillaryViewerProps) {
+export function MapillaryViewer({ accessToken, imageId, onFallback, allowMovement = true }: MapillaryViewerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const onFallbackRef = useRef(onFallback);
   const [loading, setLoading] = useState(true);
@@ -53,7 +54,8 @@ export function MapillaryViewer({ accessToken, imageId, onFallback }: MapillaryV
         imageId: String(imageId),
         component: {
           cover: false,
-          direction: true,
+          direction: allowMovement,
+          sequence: allowMovement,
         },
       });
 
@@ -83,7 +85,7 @@ export function MapillaryViewer({ accessToken, imageId, onFallback }: MapillaryV
         }
       }
     };
-  }, [accessToken, imageId]);
+  }, [accessToken, imageId, allowMovement]);
 
   return (
     <div className="relative w-full h-full bg-[#1A1D24] overflow-hidden">

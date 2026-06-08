@@ -359,6 +359,7 @@ export default function Game() {
               country={gameState.currentLocation.country}
               mapillaryFailed={mapillaryFailed}
               onMapillaryFailed={handleMapillaryFailed}
+              allowMovement={mode !== "no_move"}
             />
           ) : (
             <div className="text-center">

@@ -121,8 +121,11 @@ export function createSocketServer(httpServer: HttpServer) {
         })),
       });
 
-      // Send chat history
+      // Send chat history and current settings to the joining player
       socket.emit("lobby:chat_history", lobby.messages);
+      socket.emit("lobby:joined_data", {
+        settings: lobby.settings,
+      });
     });
 
     // ─── Lobby: Leave ──────────────────────────────────────────────
@@ -184,6 +187,22 @@ export function createSocketServer(httpServer: HttpServer) {
       }
 
       io.to(`lobby:${data.code}`).emit("lobby:message", message);
+    });
+
+    // ─── Lobby: Update Settings ─────────────────────────────────────
+    socket.on("lobby:update_settings", (data: { code: string; settings: Partial<Lobby["settings"]> }) => {
+      const lobby = lobbies.get(data.code);
+      if (!lobby) return;
+      if (lobby.hostId !== socket.data.userId) return;
+
+      lobby.settings = {
+        ...lobby.settings,
+        ...data.settings,
+      };
+
+      io.to(`lobby:${data.code}`).emit("lobby:settings_updated", {
+        settings: lobby.settings,
+      });
     });
 
     // ─── Lobby: Invite Friend ──────────────────────────────────────

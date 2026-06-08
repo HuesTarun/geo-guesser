@@ -8,6 +8,7 @@ interface StreetViewPanelProps {
   country?: string;
   mapillaryFailed: boolean;
   onMapillaryFailed: () => void;
+  allowMovement?: boolean;
 }
 
 export function StreetViewPanel({
@@ -17,6 +18,7 @@ export function StreetViewPanel({
   country,
   mapillaryFailed,
   onMapillaryFailed,
+  allowMovement = true,
 }: StreetViewPanelProps) {
   if (streetViewId && accessToken && !mapillaryFailed) {
     return (
@@ -24,6 +26,7 @@ export function StreetViewPanel({
         accessToken={accessToken}
         imageId={streetViewId}
         onFallback={onMapillaryFailed}
+        allowMovement={allowMovement}
       />
     );
   }
