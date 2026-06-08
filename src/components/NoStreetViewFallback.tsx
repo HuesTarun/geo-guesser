@@ -3,7 +3,7 @@ import { MapPinOff } from "lucide-react";
 interface NoStreetViewFallbackProps {
   city?: string | null;
   country?: string;
-  reason?: "no_coverage" | "load_failed";
+  reason?: "no_coverage" | "load_failed" | "missing_token";
 }
 
 export function NoStreetViewFallback({
@@ -24,9 +24,11 @@ export function NoStreetViewFallback({
       </h2>
 
       <p className="text-gray-400 text-sm max-w-sm mb-1">
-        {reason === "load_failed"
-          ? "The interactive panorama could not be loaded for this round."
-          : `There is no street-level imagery for ${placeName} in our database.`}
+        {reason === "missing_token"
+          ? "Street view is not configured on the server (Mapillary token missing)."
+          : reason === "load_failed"
+            ? "The interactive panorama could not be loaded for this round."
+            : `There is no street-level imagery for ${placeName} in our database.`}
       </p>
 
       <p className="text-gray-500 text-xs max-w-xs">

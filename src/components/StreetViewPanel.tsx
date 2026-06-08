@@ -28,11 +28,17 @@ export function StreetViewPanel({
     );
   }
 
+  const reason = !accessToken && streetViewId
+    ? "missing_token"
+    : mapillaryFailed
+      ? "load_failed"
+      : "no_coverage";
+
   return (
     <NoStreetViewFallback
       city={city}
       country={country}
-      reason={mapillaryFailed ? "load_failed" : "no_coverage"}
+      reason={reason}
     />
   );
 }

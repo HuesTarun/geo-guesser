@@ -422,6 +422,9 @@ export const gameRouter = createRouter({
     }),
 
   getMapillaryToken: publicQuery.query(async () => {
-    return { token: env.mapillaryAccessToken };
+    return {
+      token: env.mapillaryAccessToken,
+      configured: Boolean(env.mapillaryAccessToken),
+    };
   }),
 });
