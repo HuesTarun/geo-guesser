@@ -56,6 +56,35 @@ export function createSocketServer(httpServer: HttpServer) {
       socket.data.avatar = data.avatar;
       userSockets.set(data.userId, socket.id);
       socket.broadcast.emit("presence:online", { userId: data.userId });
+
+      // Automatically restore active lobby room memberships and socket IDs on reconnection
+      for (const [code, lobby] of lobbies) {
+        if (lobby.players.has(data.userId)) {
+          const player = lobby.players.get(data.userId)!;
+          player.socketId = socket.id;
+          player.connected = true;
+          socket.join(`lobby:${code}`);
+          console.log(`Restored lobby room membership for user ${data.userId} in lobby ${code}`);
+          
+          // Notify the room of reconnection
+          io.to(`lobby:${code}`).emit("lobby:player_joined", {
+            player: {
+              userId: player.userId,
+              username: player.username,
+              avatar: player.avatar,
+              isReady: player.isReady,
+              isHost: player.isHost,
+            },
+            players: Array.from(lobby.players.values()).map((p) => ({
+              userId: p.userId,
+              username: p.username,
+              avatar: p.avatar,
+              isReady: p.isReady,
+              isHost: p.isHost,
+            })),
+          });
+        }
+      }
     });
 
     // ─── Lobby: Create ─────────────────────────────────────────────
