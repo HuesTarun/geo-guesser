@@ -24,7 +24,25 @@ export default function Lobby() {
   const [showInviteModal, setShowInviteModal] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
-  const { data: friends } = trpc.user.listFriends.useQuery(undefined, { enabled: isAuthenticated });
+  const { data: friends, refetch: refetchFriends } = trpc.user.listFriends.useQuery(undefined, { enabled: isAuthenticated });
+
+  // Real-time friend status for invite modal
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    const unsubOnline = on("presence:online", () => {
+      refetchFriends();
+    });
+
+    const unsubOffline = on("presence:offline", () => {
+      refetchFriends();
+    });
+
+    return () => {
+      unsubOnline?.();
+      unsubOffline?.();
+    };
+  }, [isAuthenticated, on, refetchFriends]);
 
   const createLobbyMutation = trpc.lobby.create.useMutation({
     onSuccess: (data) => {

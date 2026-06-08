@@ -3,7 +3,8 @@ import { useLocation, useNavigate } from "react-router";
 
 import { trpc } from "@/providers/trpc";
 import { useGameStore } from "@/stores/gameStore";
-import { Clock, ChevronRight, RotateCcw, Home, Lock, Loader2 } from "lucide-react";
+import { Clock, ChevronRight, RotateCcw, Home, Lock, Loader2, Trophy, Share2, Check } from "lucide-react";
+import { toast } from "sonner";
 import { MapContainer, TileLayer, Marker, useMapEvents, Polyline, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
@@ -193,6 +194,41 @@ export default function Game() {
   const rounds = (location.state?.rounds as number) || 5;
   const challengeCode = (location.state?.challengeCode as string) || undefined;
 
+  const [createdChallengeCode, setCreatedChallengeCode] = useState<string | null>(null);
+  const [isCreatingChallenge, setIsCreatingChallenge] = useState(false);
+
+  const { data: gameResults } = trpc.game.getResults.useQuery(
+    { gameId: gameState.gameId || 0 },
+    { enabled: gameState.status === "game_over" && !!gameState.gameId && !challengeCode }
+  );
+
+  const createChallengeMutation = trpc.challenge.create.useMutation({
+    onSuccess: (data) => {
+      setCreatedChallengeCode(data.code);
+      const challengeUrl = `${window.location.origin}/challenge/${data.code}`;
+      navigator.clipboard.writeText(challengeUrl);
+      toast.success("Challenge created and link copied to clipboard!");
+      setIsCreatingChallenge(false);
+    },
+    onError: (err) => {
+      toast.error(err.message || "Failed to create challenge.");
+      setIsCreatingChallenge(false);
+    }
+  });
+
+  const handleShareChallenge = () => {
+    if (!gameResults || gameResults.rounds.length === 0) return;
+    setIsCreatingChallenge(true);
+    const locationIds = gameResults.rounds
+      .map((r: any) => r.locationId)
+      .filter((id: any): id is number => typeof id === "number");
+    
+    createChallengeMutation.mutate({
+      locationIds,
+      totalRounds: gameResults.totalRounds,
+    });
+  };
+
   const startGameMutation = trpc.game.startSolo.useMutation({
     onSuccess: (data) => {
       gameState.startGame({
@@ -215,7 +251,8 @@ export default function Game() {
 
   // Start game on mount
   useEffect(() => {
-    if (gameState.status === "idle" && !startGameMutation.isPending) {
+    if (gameState.status !== "playing" && !startGameMutation.isPending) {
+      gameState.resetGame();
       startGameMutation.mutate({
         mode: mode as any,
         region: region as any,
@@ -339,6 +376,41 @@ export default function Game() {
             ))}
           </div>
 
+          {challengeCode ? (
+            <button
+              onClick={() => {
+                gameState.resetGame();
+                navigate(`/challenge/${challengeCode}`);
+              }}
+              className="w-full mb-4 py-3 bg-[#3B82F6] text-white font-bold rounded-xl hover:bg-[#3B82F6]/90 transition-all flex items-center justify-center gap-2"
+            >
+              <Trophy className="w-4 h-4" />
+              View Challenge Leaderboard
+            </button>
+          ) : (
+            gameResults && (
+              <button
+                onClick={handleShareChallenge}
+                disabled={isCreatingChallenge || !!createdChallengeCode}
+                className="w-full mb-4 py-3 bg-[#3B82F6] text-white font-bold rounded-xl hover:bg-[#3B82F6]/90 transition-all flex items-center justify-center gap-2 disabled:opacity-75 disabled:cursor-not-allowed"
+              >
+                {isCreatingChallenge ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : createdChallengeCode ? (
+                  <>
+                    <Check className="w-4 h-4 text-green-400" />
+                    Challenge Copied! ({createdChallengeCode})
+                  </>
+                ) : (
+                  <>
+                    <Share2 className="w-4 h-4" />
+                    Share as Challenge
+                  </>
+                )}
+              </button>
+            )
+          )}
+
           <div className="flex gap-3">
             <button
               onClick={handlePlayAgain}
@@ -385,13 +457,9 @@ export default function Game() {
           {gameState.currentLocation ? (
             <>
               <PanZoomImage 
-                src={gameState.currentLocation.imageUrl || `https://loremflickr.com/800/600/${gameState.currentLocation.city || gameState.currentLocation.country || "city"},landmark/all?lock=${gameState.roundNumber}`} 
+                src={gameState.currentLocation.imageUrl || `https://loremflickr.com/800/600/${encodeURIComponent(gameState.currentLocation.city || gameState.currentLocation.country || "city")},landmark/all?lock=${gameState.currentLocation.id || gameState.roundNumber}`} 
                 alt="Find this location" 
               />
-              <div className="absolute bottom-4 left-4 bg-black/75 backdrop-blur-md px-4 py-2 rounded-xl text-xs border border-gray-700/50 flex flex-col gap-0.5 select-none pointer-events-none">
-                <span className="text-gray-400 font-medium">Difficulty</span>
-                <span className="text-[#E6C200] font-bold uppercase tracking-wider">{gameState.currentLocation.difficulty || "medium"}</span>
-              </div>
             </>
           ) : (
             <div className="text-center">

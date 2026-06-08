@@ -16,6 +16,7 @@ export function getDb() {
     
     sqlClient = postgres(env.databaseUrl, {
       prepare: !isPooler,
+      connect_timeout: 10, // Timeout connection after 10 seconds instead of hanging
     });
     instance = drizzle(sqlClient, {
       schema: fullSchema,

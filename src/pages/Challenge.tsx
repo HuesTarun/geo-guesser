@@ -126,9 +126,9 @@ export default function Challenge() {
                     #{index + 1}
                   </span>
                   <div className="w-8 h-8 bg-[#3B82F6] rounded-full flex items-center justify-center text-sm font-bold">
-                    {entry.userId?.toString()[0] || "P"}
+                    {(entry.userUsername || entry.userName || "Player")[0].toUpperCase()}
                   </div>
-                  <span className="font-medium">Player {entry.userId}</span>
+                  <span className="font-medium">{entry.userUsername || entry.userName || `Player ${entry.userId}`}</span>
                 </div>
                 <span className="font-bold text-[#E6C200]">{entry.score?.toLocaleString()}</span>
               </div>

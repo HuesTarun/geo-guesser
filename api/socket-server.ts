@@ -1,6 +1,6 @@
 import { Server as HttpServer } from "http";
 import { Server as SocketIOServer, Socket } from "socket.io";
-import { getRandomLocations } from "./queries/games";
+import { getRandomLocations, updateMultiplayerGameResults } from "./queries/games";
 
 interface LobbyPlayer {
   socketId: string;
@@ -197,6 +197,27 @@ export function createSocketServer(httpServer: HttpServer) {
       }
     });
 
+    // ─── Friend Events ─────────────────────────────────────────────
+    socket.on("friend:request_sent", (data: { targetUserId: number }) => {
+      const targetSocketId = userSockets.get(data.targetUserId);
+      if (targetSocketId) {
+        io.to(targetSocketId).emit("friend:request_received", {
+          requesterId: socket.data.userId,
+          requesterName: socket.data.username || "A user",
+        });
+      }
+    });
+
+    socket.on("friend:request_accepted", (data: { targetUserId: number }) => {
+      const targetSocketId = userSockets.get(data.targetUserId);
+      if (targetSocketId) {
+        io.to(targetSocketId).emit("friend:accepted", {
+          userId: socket.data.userId,
+          username: socket.data.username || "A user",
+        });
+      }
+    });
+
     // ─── Lobby: Start Game ─────────────────────────────────────────
     socket.on("lobby:start", async (data: { code: string }) => {
       const lobby = lobbies.get(data.code);
@@ -282,7 +303,7 @@ export function createSocketServer(httpServer: HttpServer) {
     });
 
     // ─── Game: End ─────────────────────────────────────────────────
-    socket.on("game:end", (data: { code: string }) => {
+    socket.on("game:end", async (data: { code: string }) => {
       const lobby = lobbies.get(data.code);
       if (!lobby) return;
 
@@ -296,6 +317,12 @@ export function createSocketServer(httpServer: HttpServer) {
           score: p.score,
         }))
         .sort((a, b) => b.score - a.score);
+
+      try {
+        await updateMultiplayerGameResults(finalScores);
+      } catch (err) {
+        console.error("Failed to update multiplayer game results in DB:", err);
+      }
 
       io.to(`lobby:${data.code}`).emit("game:final_scores", {
         scores: finalScores,

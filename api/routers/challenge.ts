@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { createRouter, authedQuery, publicQuery } from "../middleware";
 import { getDb } from "../queries/connection";
-import { challenges, challengeAttempts } from "@db/schema";
+import { challenges, challengeAttempts, users } from "@db/schema";
 import { eq, desc } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 
@@ -122,8 +122,11 @@ export const challengeRouter = createRouter({
           userId: challengeAttempts.userId,
           score: challengeAttempts.score,
           createdAt: challengeAttempts.createdAt,
+          userUsername: users.username,
+          userName: users.name,
         })
         .from(challengeAttempts)
+        .leftJoin(users, eq(challengeAttempts.userId, users.id))
         .where(eq(challengeAttempts.challengeId, found[0].id))
         .orderBy(desc(challengeAttempts.score))
         .limit(50);

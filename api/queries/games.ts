@@ -1,4 +1,4 @@
-import { eq, desc, and, sql, notInArray } from "drizzle-orm";
+import { eq, desc, and, sql, notInArray, inArray } from "drizzle-orm";
 import { getDb } from "./connection";
 import { games, rounds, locations, users, leaderboardEntries } from "@db/schema";
 import type { InsertGame, InsertRound } from "@db/schema";
@@ -131,7 +131,7 @@ export async function addLeaderboardEntry(data: typeof leaderboardEntries.$infer
   await db.insert(leaderboardEntries).values(data);
 }
 
-export async function updateUserStats(userId: number, score: number, distance: number, isWin: boolean) {
+export async function updateUserStats(userId: number, score: number, distance: number, isWin: boolean, maxPossibleScore: number = 25000) {
   const db = getDb();
   const user = await db.select().from(users).where(eq(users.id, userId)).limit(1);
   if (user.length === 0) return;
@@ -144,6 +144,11 @@ export async function updateUserStats(userId: number, score: number, distance: n
   const newWins = isWin ? u.wins + 1 : u.wins;
   const newLosses = !isWin ? u.losses + 1 : u.losses;
 
+  const eloChange = Math.round((score - (maxPossibleScore * 0.5)) / 100);
+  const clampedEloChange = Math.max(-50, Math.min(50, eloChange));
+  const newElo = Math.max(100, u.eloRating + clampedEloChange);
+  const newRank = getRankFromElo(newElo) as "bronze" | "silver" | "gold" | "platinum" | "diamond" | "master" | "grandmaster";
+
   await db.update(users).set({
     gamesPlayed: newGamesPlayed,
     totalScore: newTotalScore,
@@ -151,6 +156,8 @@ export async function updateUserStats(userId: number, score: number, distance: n
     averageDistance: newAvgDistance,
     wins: newWins,
     losses: newLosses,
+    eloRating: newElo,
+    rank: newRank,
   }).where(eq(users.id, userId));
 }
 
@@ -192,4 +199,78 @@ export function getRankFromElo(elo: number): string {
 export function calculateEloChange(playerElo: number, opponentElo: number, score: number, kFactor: number = 32): number {
   const expectedScore = 1 / (1 + Math.pow(10, (opponentElo - playerElo) / 400));
   return Math.round(kFactor * (score - expectedScore));
+}
+
+export async function updateMultiplayerGameResults(playerResults: Array<{ userId: number; score: number }>) {
+  const db = getDb();
+  if (playerResults.length === 0) return;
+
+  const userIds = playerResults.map((p) => p.userId);
+  const dbUsers = await db.select().from(users).where(inArray(users.id, userIds));
+  const userMap = new Map(dbUsers.map((u) => [u.id, u]));
+
+  const eloChanges = new Map<number, number>();
+  for (const userId of userIds) {
+    eloChanges.set(userId, 0);
+  }
+
+  const N = playerResults.length;
+  if (N > 1) {
+    for (let i = 0; i < N; i++) {
+      for (let j = i + 1; j < N; j++) {
+        const pA = playerResults[i];
+        const pB = playerResults[j];
+        const uA = userMap.get(pA.userId);
+        const uB = userMap.get(pB.userId);
+        if (!uA || !uB) continue;
+
+        let scoreA = 0.5;
+        if (pA.score > pB.score) scoreA = 1;
+        else if (pA.score < pB.score) scoreA = 0;
+
+        let scoreB = 1 - scoreA;
+
+        const kFactor = 32 / (N - 1);
+        const changeA = calculateEloChange(uA.eloRating, uB.eloRating, scoreA, kFactor);
+        const changeB = calculateEloChange(uB.eloRating, uA.eloRating, scoreB, kFactor);
+
+        eloChanges.set(pA.userId, (eloChanges.get(pA.userId) || 0) + changeA);
+        eloChanges.set(pB.userId, (eloChanges.get(pB.userId) || 0) + changeB);
+      }
+    }
+  } else if (N === 1) {
+    const p = playerResults[0];
+    const u = userMap.get(p.userId);
+    if (u) {
+      const eloChange = Math.round((p.score - 12500) / 100);
+      eloChanges.set(p.userId, Math.max(-50, Math.min(50, eloChange)));
+    }
+  }
+
+  const winnerUserId = playerResults[0].userId; // Sorted by score desc
+  for (const p of playerResults) {
+    const u = userMap.get(p.userId);
+    if (!u) continue;
+
+    const eloChange = eloChanges.get(p.userId) || 0;
+    const newElo = Math.max(100, u.eloRating + eloChange);
+    const newRank = getRankFromElo(newElo) as "bronze" | "silver" | "gold" | "platinum" | "diamond" | "master" | "grandmaster";
+
+    const isWin = p.userId === winnerUserId;
+    const newWins = isWin ? u.wins + 1 : u.wins;
+    const newLosses = !isWin ? u.losses + 1 : u.losses;
+
+    await db
+      .update(users)
+      .set({
+        gamesPlayed: u.gamesPlayed + 1,
+        wins: newWins,
+        losses: newLosses,
+        eloRating: newElo,
+        rank: newRank,
+        totalScore: u.totalScore + p.score,
+        bestScore: Math.max(u.bestScore, p.score),
+      })
+      .where(eq(users.id, p.userId));
+  }
 }

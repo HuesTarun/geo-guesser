@@ -98,6 +98,7 @@ export const gameRouter = createRouter({
         roundNumber: 1,
         totalRounds: input.totalRounds,
         location: {
+          id: location.id,
           lat: location.lat,
           lng: location.lng,
           country: location.country,
@@ -193,7 +194,7 @@ export const gameRouter = createRouter({
         const maxPossible = game.totalRounds * 5000;
         const isWin = newTotalScore > maxPossible * 0.5;
 
-        await updateUserStats(ctx.user!.id, newTotalScore, avgDistance, isWin);
+        await updateUserStats(ctx.user!.id, newTotalScore, avgDistance, isWin, maxPossible);
 
         // Add to leaderboard
         await addLeaderboardEntry({
@@ -313,6 +314,7 @@ export const gameRouter = createRouter({
           roundId: nextRoundId,
           roundNumber: newRoundNumber + 1,
           location: {
+            id: nextLocation.id,
             lat: nextLocation.lat,
             lng: nextLocation.lng,
             country: nextLocation.country,
@@ -340,6 +342,7 @@ export const gameRouter = createRouter({
         totalRounds: game.totalRounds,
         status: game.status,
         rounds: rounds.map((r) => ({
+          locationId: r.locationId,
           roundNumber: r.roundNumber,
           guessLat: r.guessLat,
           guessLng: r.guessLng,

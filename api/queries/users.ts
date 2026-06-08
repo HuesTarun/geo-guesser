@@ -221,6 +221,11 @@ export async function sendFriendRequest(requesterId: number, addresseeId: number
 export async function respondToFriendRequest(requestId: number, accept: boolean) {
   const db = getDb();
   
+  const found = await db.select().from(friendships).where(eq(friendships.id, requestId)).limit(1);
+  if (found.length === 0) return { success: false, requesterId: null, addresseeId: null };
+
+  const rel = found[0];
+  
   if (accept) {
     await db
       .update(friendships)
@@ -232,7 +237,7 @@ export async function respondToFriendRequest(requestId: number, accept: boolean)
       .where(eq(friendships.id, requestId));
   }
 
-  return { success: true };
+  return { success: true, requesterId: rel.requesterId, addresseeId: rel.addresseeId };
 }
 
 export async function removeFriend(userId: number, friendId: number) {
