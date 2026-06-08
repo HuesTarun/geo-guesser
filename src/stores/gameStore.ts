@@ -10,6 +10,16 @@ interface RoundResult {
   score: number | null;
 }
 
+export interface GameLocation {
+  id?: number;
+  lat: number;
+  lng: number;
+  country: string;
+  city: string | null;
+  imageUrl?: string | null;
+  difficulty?: string | null;
+}
+
 interface GameState {
   gameId: number | null;
   roundId: number | null;
@@ -19,7 +29,7 @@ interface GameState {
   mode: string;
   region: string;
   status: "idle" | "playing" | "round_summary" | "game_over";
-  currentLocation: { lat: number; lng: number; country: string; city: string | null; imageUrl?: string | null; difficulty?: string | null } | null;
+  currentLocation: GameLocation | null;
   guessLocation: { lat: number; lng: number } | null;
   roundResults: RoundResult[];
   timeLeft: number;
@@ -29,7 +39,7 @@ interface GameState {
     score: number;
     actualLocation: { lat: number; lng: number };
     guessLocation: { lat: number; lng: number };
-    nextRound?: { roundId: number; roundNumber: number; location: { lat: number; lng: number; country: string; city: string | null; imageUrl?: string | null; difficulty?: string | null } } | null;
+    nextRound?: { roundId: number; roundNumber: number; location: GameLocation } | null;
     gameComplete?: boolean;
     finalScore?: number;
   } | null;
@@ -40,7 +50,7 @@ interface GameState {
     roundId: number;
     roundNumber: number;
     totalRounds: number;
-    location: { lat: number; lng: number; country: string; city: string | null; imageUrl?: string | null; difficulty?: string | null };
+    location: GameLocation;
     mode: string;
     region: string;
   }) => void;
@@ -50,7 +60,7 @@ interface GameState {
     score: number;
     actualLocation: { lat: number; lng: number };
     guessLocation: { lat: number; lng: number };
-    nextRound?: { roundId: number; roundNumber: number; location: { lat: number; lng: number; country: string; city: string | null; imageUrl?: string | null; difficulty?: string | null } } | null;
+    nextRound?: { roundId: number; roundNumber: number; location: GameLocation } | null;
     gameComplete?: boolean;
     finalScore?: number;
   }) => void;
@@ -58,11 +68,12 @@ interface GameState {
   nextRound: (data: {
     roundId: number;
     roundNumber: number;
-    location: { lat: number; lng: number; country: string; city: string | null; imageUrl?: string | null; difficulty?: string | null };
+    location: GameLocation;
   }) => void;
   resetGame: () => void;
   showRoundSummary: (show: boolean) => void;
 }
+
 
 export const useGameStore = create<GameState>((set) => ({
   gameId: null,

@@ -457,7 +457,7 @@ export default function Game() {
           {gameState.currentLocation ? (
             <>
               <PanZoomImage 
-                src={gameState.currentLocation.imageUrl || `https://loremflickr.com/800/600/${encodeURIComponent(gameState.currentLocation.city || gameState.currentLocation.country || "city")},landmark/all?lock=${gameState.currentLocation.id || gameState.roundNumber}`} 
+                src={gameState.currentLocation.imageUrl || `https://loremflickr.com/800/600/${encodeURIComponent(gameState.currentLocation.city || gameState.currentLocation.country || "city")}?lock=${gameState.currentLocation.id || gameState.roundNumber}`} 
                 alt="Find this location" 
               />
             </>

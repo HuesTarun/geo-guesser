@@ -378,7 +378,7 @@ export default function MultiplayerGame() {
   const cityTag = encodeURIComponent(currentLocation?.city || currentLocation?.country || "city");
   const displayImgUrl =
     currentLocation?.imageUrl ||
-    `https://loremflickr.com/800/600/${cityTag},landmark/all?lock=${imageLock}`;
+    `https://loremflickr.com/800/600/${cityTag}?lock=${imageLock}`;
 
   const minutes = Math.floor(timeLeft / 60);
   const seconds = timeLeft % 60;
