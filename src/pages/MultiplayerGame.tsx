@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router";
 import { useSocket } from "@/hooks/useSocket";
 import { useLobbyStore } from "@/stores/lobbyStore";
+import { trpc } from "@/providers/trpc";
+import { MapillaryViewer } from "@/components/MapillaryViewer";
 import { MapContainer, TileLayer, Marker, useMapEvents, Polyline, useMap } from "react-leaflet";
 import L from "leaflet";
 import {
@@ -220,6 +222,15 @@ export default function MultiplayerGame() {
   const [totalScore, setTotalScore] = useState(0);
   const [timeLeft, setTimeLeft] = useState(120);
   const [guessLocation, setGuessLocation] = useState<{ lat: number; lng: number } | null>(null);
+
+  const [useFlickrFallback, setUseFlickrFallback] = useState(false);
+  const { data: mapillaryTokenData } = trpc.game.getMapillaryToken.useQuery(undefined, {
+    staleTime: Infinity,
+  });
+
+  useEffect(() => {
+    setUseFlickrFallback(false);
+  }, [roundNumber]);
   const [status, setStatus] = useState<"playing" | "round_end" | "game_over">("playing");
   const [lastGuess, setLastGuess] = useState<any>(null);
   const [scores, setScores] = useState<any[]>([]);
@@ -446,7 +457,15 @@ export default function MultiplayerGame() {
       <div className="flex-1 flex flex-col lg:flex-row">
         {/* Street View Image */}
         <div className="flex-1 bg-[#1A1D24] relative flex items-center justify-center min-h-[200px] overflow-hidden">
-          <PanZoomImage src={displayImgUrl} alt="Find this location" />
+          {currentLocation?.streetViewId && mapillaryTokenData?.token && !useFlickrFallback ? (
+            <MapillaryViewer
+              accessToken={mapillaryTokenData.token}
+              imageId={currentLocation.streetViewId}
+              onFallback={() => setUseFlickrFallback(true)}
+            />
+          ) : (
+            <PanZoomImage src={displayImgUrl} alt="Find this location" />
+          )}
           <div className="absolute bottom-4 left-4 bg-black/75 backdrop-blur-md px-4 py-2 rounded-xl text-xs border border-gray-700/50 pointer-events-none select-none">
             <span className="text-[#E6C200] font-bold uppercase tracking-wider">
               Round {roundNumber}

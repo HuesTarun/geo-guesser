@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from "react-router";
 
 import { trpc } from "@/providers/trpc";
 import { useGameStore } from "@/stores/gameStore";
+import { MapillaryViewer } from "@/components/MapillaryViewer";
 import { Clock, ChevronRight, RotateCcw, Home, Lock, Loader2, Trophy, Share2, Check } from "lucide-react";
 import { toast } from "sonner";
 import { MapContainer, TileLayer, Marker, useMapEvents, Polyline, useMap } from "react-leaflet";
@@ -188,6 +189,15 @@ export default function Game() {
   
   const gameState = useGameStore();
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const [useFlickrFallback, setUseFlickrFallback] = useState(false);
+  const { data: mapillaryTokenData } = trpc.game.getMapillaryToken.useQuery(undefined, {
+    staleTime: Infinity,
+  });
+
+  useEffect(() => {
+    setUseFlickrFallback(false);
+  }, [gameState.roundNumber]);
 
   const mode = (location.state?.mode as string) || "classic";
   const region = (location.state?.region as string) || "worldwide";
@@ -456,10 +466,18 @@ export default function Game() {
         <div className="flex-1 bg-[#1A1D24] relative flex items-center justify-center min-h-[200px] overflow-hidden">
           {gameState.currentLocation ? (
             <>
-              <PanZoomImage 
-                src={gameState.currentLocation.imageUrl || `https://loremflickr.com/800/600/${encodeURIComponent(gameState.currentLocation.city || gameState.currentLocation.country || "city")}?lock=${gameState.currentLocation.id || gameState.roundNumber}`} 
-                alt="Find this location" 
-              />
+              {gameState.currentLocation.streetViewId && mapillaryTokenData?.token && !useFlickrFallback ? (
+                <MapillaryViewer
+                  accessToken={mapillaryTokenData.token}
+                  imageId={gameState.currentLocation.streetViewId}
+                  onFallback={() => setUseFlickrFallback(true)}
+                />
+              ) : (
+                <PanZoomImage 
+                  src={gameState.currentLocation.imageUrl || `https://loremflickr.com/800/600/${encodeURIComponent(gameState.currentLocation.city || gameState.currentLocation.country || "city")}?lock=${gameState.currentLocation.id || gameState.roundNumber}`} 
+                  alt="Find this location" 
+                />
+              )}
             </>
           ) : (
             <div className="text-center">

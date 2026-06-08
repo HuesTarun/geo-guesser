@@ -245,6 +245,7 @@ export function createSocketServer(httpServer: HttpServer) {
             city: loc.city,
             imageUrl: loc.imageUrl,
             difficulty: loc.difficulty,
+            streetViewId: loc.streetViewId,
           })),
         });
       } catch (err: any) {

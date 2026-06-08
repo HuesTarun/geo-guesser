@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { createRouter, authedQuery, publicQuery } from "../middleware";
+import { env } from "../lib/env";
 import {
   createGame,
   getGameById,
@@ -105,6 +106,7 @@ export const gameRouter = createRouter({
           city: location.city,
           imageUrl: location.imageUrl,
           difficulty: location.difficulty,
+          streetViewId: location.streetViewId,
         },
         mode: input.mode,
         region: input.region,
@@ -321,6 +323,7 @@ export const gameRouter = createRouter({
             city: nextLocation.city,
             imageUrl: nextLocation.imageUrl,
             difficulty: nextLocation.difficulty,
+            streetViewId: nextLocation.streetViewId,
           },
         },
       };
@@ -407,4 +410,8 @@ export const gameRouter = createRouter({
         },
       };
     }),
+
+  getMapillaryToken: publicQuery.query(async () => {
+    return { token: env.mapillaryAccessToken };
+  }),
 });

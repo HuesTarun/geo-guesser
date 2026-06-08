@@ -18,6 +18,7 @@ export interface GameLocation {
   city: string | null;
   imageUrl?: string | null;
   difficulty?: string | null;
+  streetViewId?: string | null;
 }
 
 interface GameState {
