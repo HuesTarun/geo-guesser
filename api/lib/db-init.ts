@@ -46,7 +46,8 @@ export async function initializeDatabase() {
     }
 
     // 3. Populate streetViewId using Mapillary if token is available
-    if (env.mapillaryAccessToken) {
+    const isPlaceholderToken = env.mapillaryAccessToken === "MLY|your_copied_client_token_here";
+    if (env.mapillaryAccessToken && !isPlaceholderToken) {
       try {
         console.log("[DB] Populating missing Mapillary streetViewIds...");
         const locationsWithoutStreetView = await db
@@ -87,6 +88,8 @@ export async function initializeDatabase() {
       } catch (err) {
         console.error("[DB] Error populating streetViewIds:", err);
       }
+    } else if (isPlaceholderToken) {
+      console.warn("[DB] WARNING: MAPILLARY_ACCESS_TOKEN is still set to the placeholder ('MLY|your_copied_client_token_here'). Please replace it with your actual Mapillary Client Token to enable interactive 3D street views!");
     } else {
       console.log("[DB] MAPILLARY_ACCESS_TOKEN not set; skipping streetViewId population.");
     }
