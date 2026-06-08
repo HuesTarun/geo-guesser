@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate, useParams } from "react-router";
 import { useAuth } from "@/hooks/useAuth";
 import { trpc } from "@/providers/trpc";
@@ -6,8 +6,9 @@ import { useSocket } from "@/hooks/useSocket";
 import { useLobbyStore } from "@/stores/lobbyStore";
 import {
   Users, Copy, Check, Play, Settings, MessageSquare,
-  ArrowLeft, Loader2,
+  ArrowLeft, Loader2, LogOut, X, UserPlus,
 } from "lucide-react";
+import { toast } from "sonner";
 
 export default function Lobby() {
   const navigate = useNavigate();
@@ -20,6 +21,10 @@ export default function Lobby() {
   const [chatMessage, setChatMessage] = useState("");
   const [copied, setCopied] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [showInviteModal, setShowInviteModal] = useState(false);
+  const chatEndRef = useRef<HTMLDivElement>(null);
+
+  const { data: friends } = trpc.user.listFriends.useQuery(undefined, { enabled: isAuthenticated });
 
   const createLobbyMutation = trpc.lobby.create.useMutation({
     onSuccess: (data) => {
@@ -44,9 +49,23 @@ export default function Lobby() {
       }
     },
     onError: (err) => {
-      alert(err.message);
+      toast.error(err.message);
     },
   });
+
+  // Handle auto-joining from URL
+  useEffect(() => {
+    if (urlCode && urlCode !== lobbyStore.lobbyCode && isAuthenticated && !joinLobbyMutation.isPending) {
+      joinLobbyMutation.mutate({ code: urlCode });
+    }
+  }, [urlCode, isAuthenticated]);
+
+  // Handle cleanup when opening main join page without a code in the URL
+  useEffect(() => {
+    if (!urlCode && lobbyStore.lobbyCode) {
+      lobbyStore.reset();
+    }
+  }, [urlCode]);
 
   // Socket events
   useEffect(() => {
@@ -64,6 +83,10 @@ export default function Lobby() {
       lobbyStore.addMessage(msg);
     });
 
+    const unsubChatHistory = on("lobby:chat_history", (msgs: any[]) => {
+      lobbyStore.setMessages(msgs.map(m => ({ ...m, timestamp: new Date(m.timestamp) })));
+    });
+
     const unsubGameStarted = on("lobby:game_started", (data: any) => {
       if (data?.locations) {
         lobbyStore.setGameLocations(data.locations);
@@ -76,9 +99,23 @@ export default function Lobby() {
       unsubPlayerJoined?.();
       unsubPlayerLeft?.();
       unsubMessage?.();
+      unsubChatHistory?.();
       unsubGameStarted?.();
     };
   }, [lobbyStore.lobbyCode]);
+
+  // Scroll chat to bottom on new messages
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [lobbyStore.messages]);
+
+  const handleLeaveLobby = () => {
+    if (lobbyStore.lobbyCode) {
+      emit("lobby:leave", { code: lobbyStore.lobbyCode });
+      lobbyStore.reset();
+      navigate("/lobby");
+    }
+  };
 
   if (!isAuthenticated) {
     return (
@@ -185,6 +222,7 @@ export default function Lobby() {
                     onClick={() => {
                       navigator.clipboard.writeText(lobbyStore.lobbyCode!);
                       setCopied(true);
+                      toast.success("Lobby code copied!");
                       setTimeout(() => setCopied(false), 2000);
                     }}
                     className="p-1 hover:bg-white/5 rounded transition-colors"
@@ -193,14 +231,32 @@ export default function Lobby() {
                   </button>
                 </div>
               </div>
-              {lobbyStore.isHost && (
+              <div className="flex items-center gap-2">
                 <button
-                  onClick={() => setShowSettings(!showSettings)}
-                  className="p-2 hover:bg-white/5 rounded-lg transition-colors"
+                  onClick={() => setShowInviteModal(true)}
+                  className="p-2 hover:bg-white/5 rounded-lg text-gray-400 hover:text-white transition-colors"
+                  title="Invite Friends"
                 >
-                  <Settings className="w-5 h-5 text-gray-400" />
+                  <UserPlus className="w-5 h-5" />
                 </button>
-              )}
+                {lobbyStore.isHost && (
+                  <button
+                    onClick={() => setShowSettings(!showSettings)}
+                    className="p-2 hover:bg-white/5 rounded-lg transition-colors"
+                    title="Lobby Settings"
+                  >
+                    <Settings className="w-5 h-5 text-gray-400" />
+                  </button>
+                )}
+                <button
+                  onClick={handleLeaveLobby}
+                  className="p-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg transition-colors flex items-center gap-1.5 text-sm font-medium"
+                  title="Leave Lobby"
+                >
+                  <LogOut className="w-4 h-4" />
+                  Leave
+                </button>
+              </div>
             </div>
 
             {/* Settings Panel */}
@@ -278,35 +334,25 @@ export default function Lobby() {
                       </span>
                     )}
                   </div>
-                  <div className={`w-2 h-2 rounded-full ${player.isReady ? "bg-green-400" : "bg-gray-600"}`} />
+                  <div className="w-2 h-2 rounded-full bg-green-400" title="Online" />
                 </div>
               ))}
             </div>
 
-            {/* Ready / Start Buttons */}
-            <div className="mt-4 flex gap-3">
-              <button
-                onClick={() => {
-                  const newReady = !lobbyStore.isReady;
-                  lobbyStore.setReady(newReady);
-                  emit("lobby:ready", { code: lobbyStore.lobbyCode, ready: newReady });
-                }}
-                className={`flex-1 py-3 font-bold rounded-xl transition-all ${
-                  lobbyStore.isReady
-                    ? "bg-green-500/20 text-green-400 border border-green-500/30"
-                    : "bg-[#1A1D24] text-gray-300 border border-gray-700/50 hover:bg-[#1A1D24]/80"
-                }`}
-              >
-                {lobbyStore.isReady ? "Ready!" : "Ready Up"}
-              </button>
-              {lobbyStore.isHost && (
+            {/* Start Game Buttons */}
+            <div className="mt-4">
+              {lobbyStore.isHost ? (
                 <button
                   onClick={() => emit("lobby:start", { code: lobbyStore.lobbyCode })}
-                  className="flex-1 py-3 bg-[#E6C200] text-[#1A1D24] font-bold rounded-xl hover:bg-[#E6C200]/90 transition-all flex items-center justify-center gap-2"
+                  className="w-full py-3 bg-[#E6C200] text-[#1A1D24] font-bold rounded-xl hover:bg-[#E6C200]/90 transition-all flex items-center justify-center gap-2"
                 >
                   <Play className="w-4 h-4" />
                   Start Game
                 </button>
+              ) : (
+                <div className="text-center text-sm text-gray-400 py-3 bg-[#1A1D24] rounded-xl border border-gray-800 animate-pulse">
+                  Waiting for host to start game...
+                </div>
               )}
             </div>
           </div>
@@ -328,6 +374,7 @@ export default function Lobby() {
             {lobbyStore.messages.length === 0 && (
               <p className="text-gray-500 text-sm text-center">No messages yet</p>
             )}
+            <div ref={chatEndRef} />
           </div>
           <div className="p-3 border-t border-gray-700/50">
             <div className="flex gap-2">
@@ -359,6 +406,66 @@ export default function Lobby() {
           </div>
         </div>
       </div>
+
+      {/* Invite Friends Modal */}
+      {showInviteModal && (
+        <div className="fixed inset-0 bg-black/75 backdrop-blur-sm flex items-center justify-center z-[9999] px-4">
+          <div className="bg-[#252830] rounded-2xl p-6 max-w-md w-full border border-gray-700/50">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold flex items-center gap-2">
+                <Users className="w-5 h-5 text-[#E6C200]" />
+                Invite Friends
+              </h3>
+              <button
+                onClick={() => setShowInviteModal(false)}
+                className="p-1 hover:bg-white/5 rounded-lg text-gray-400 hover:text-white"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="max-h-60 overflow-y-auto space-y-2 pr-1">
+              {friends && friends.length > 0 ? (
+                friends.map((friend) => (
+                  <div
+                    key={friend.id}
+                    className="flex items-center justify-between p-3 bg-[#1A1D24] rounded-xl border border-gray-800"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 bg-[#3B82F6] rounded-full flex items-center justify-center font-bold text-xs">
+                        {(friend.name || friend.username || "P")[0]?.toUpperCase()}
+                      </div>
+                      <div>
+                        <div className="text-sm font-medium">{friend.name || friend.username}</div>
+                        <div className="flex items-center gap-1.5">
+                          <span className={`w-1.5 h-1.5 rounded-full ${friend.isOnline ? "bg-green-400" : "bg-gray-600"}`} />
+                          <span className="text-[10px] text-gray-400 capitalize">
+                            {friend.isOnline ? "Online" : "Offline"}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => {
+                        emit("lobby:invite", { friendId: friend.id, code: lobbyStore.lobbyCode });
+                        toast.success(`Invitation sent to ${friend.name || friend.username}!`);
+                      }}
+                      disabled={!friend.isOnline}
+                      className="px-3 py-1.5 bg-[#3B82F6] text-white text-xs font-semibold rounded-lg hover:bg-[#3B82F6]/90 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                    >
+                      Invite
+                    </button>
+                  </div>
+                ))
+              ) : (
+                <div className="text-center py-6 text-gray-500 text-sm">
+                  No friends added yet.
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

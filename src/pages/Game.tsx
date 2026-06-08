@@ -102,6 +102,39 @@ function PanZoomImage({ src, alt }: { src: string; alt: string }) {
     setIsDragging(false);
   };
 
+  const handleTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
+    if (e.touches.length === 1) {
+      setIsDragging(true);
+      const touch = e.touches[0];
+      setDragStart({ x: touch.clientX - position.x, y: touch.clientY - position.y });
+    }
+  };
+
+  const handleTouchMove = (e: React.TouchEvent<HTMLDivElement>) => {
+    if (!isDragging) return;
+    if (e.touches.length === 1) {
+      const touch = e.touches[0];
+      setPosition({
+        x: touch.clientX - dragStart.x,
+        y: touch.clientY - dragStart.y,
+      });
+    }
+  };
+
+  const zoomIn = () => {
+    setScale((s) => Math.min(s + 0.5, 4));
+  };
+
+  const zoomOut = () => {
+    setScale((s) => {
+      const newScale = Math.max(s - 0.5, 1);
+      if (newScale === 1) {
+        setPosition({ x: 0, y: 0 });
+      }
+      return newScale;
+    });
+  };
+
   return (
     <div
       ref={containerRef}
@@ -110,6 +143,9 @@ function PanZoomImage({ src, alt }: { src: string; alt: string }) {
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
       onMouseLeave={handleMouseUp}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleMouseUp}
       className="w-full h-full overflow-hidden cursor-grab active:cursor-grabbing select-none relative"
     >
       <img
@@ -120,8 +156,26 @@ function PanZoomImage({ src, alt }: { src: string; alt: string }) {
           transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`,
         }}
       />
-      <div className="absolute top-4 right-4 bg-black/60 backdrop-blur-sm px-3 py-1.5 rounded-lg text-[10px] text-gray-300 border border-gray-700/50 pointer-events-none">
+      <div className="absolute top-4 right-4 bg-black/60 backdrop-blur-sm px-3 py-1.5 rounded-lg text-[10px] text-gray-300 border border-gray-700/50 pointer-events-none hidden sm:block">
         Scroll to Zoom · Drag to Pan
+      </div>
+      
+      {/* Zoom control buttons for mobile/desktop */}
+      <div className="absolute bottom-4 right-4 flex gap-1.5 z-10">
+        <button
+          onClick={zoomOut}
+          disabled={scale === 1}
+          className="w-10 h-10 bg-black/70 backdrop-blur-md text-white font-bold rounded-xl border border-gray-700/50 flex items-center justify-center hover:bg-black/90 active:scale-95 transition-all disabled:opacity-50"
+        >
+          -
+        </button>
+        <button
+          onClick={zoomIn}
+          disabled={scale === 4}
+          className="w-10 h-10 bg-black/70 backdrop-blur-md text-white font-bold rounded-xl border border-gray-700/50 flex items-center justify-center hover:bg-black/90 active:scale-95 transition-all disabled:opacity-50"
+        >
+          +
+        </button>
       </div>
     </div>
   );
@@ -307,7 +361,7 @@ export default function Game() {
   }
 
   return (
-    <div className="h-screen flex flex-col">
+    <div className="h-[100dvh] flex flex-col">
       {/* Top HUD */}
       <div className="bg-[#252830] border-b border-gray-700/50 px-4 py-2 flex items-center justify-between z-10">
         <div className="flex items-center gap-4">
@@ -403,7 +457,7 @@ export default function Game() {
             <button
               onClick={handleSubmitGuess}
               disabled={!gameState.guessLocation || submitGuessMutation.isPending}
-              className="absolute bottom-4 left-1/2 -translate-x-1/2 px-8 py-3 bg-[#E6C200] text-[#1A1D24] font-bold rounded-full shadow-lg hover:bg-[#E6C200]/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 z-[400]"
+              className="absolute bottom-4 left-1/2 -translate-x-1/2 px-8 py-3 bg-[#E6C200] text-[#1A1D24] font-bold rounded-full shadow-lg hover:bg-[#E6C200]/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 z-[9999]"
             >
               <Lock className="w-4 h-4" />
               {submitGuessMutation.isPending ? "Submitting..." : "Lock In Guess"}

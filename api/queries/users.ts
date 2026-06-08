@@ -221,10 +221,16 @@ export async function sendFriendRequest(requesterId: number, addresseeId: number
 export async function respondToFriendRequest(requestId: number, accept: boolean) {
   const db = getDb();
   
-  await db
-    .update(friendships)
-    .set({ status: accept ? "accepted" : "rejected" })
-    .where(eq(friendships.id, requestId));
+  if (accept) {
+    await db
+      .update(friendships)
+      .set({ status: "accepted" })
+      .where(eq(friendships.id, requestId));
+  } else {
+    await db
+      .delete(friendships)
+      .where(eq(friendships.id, requestId));
+  }
 
   return { success: true };
 }

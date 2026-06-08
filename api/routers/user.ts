@@ -15,6 +15,9 @@ import {
   getAllUsers,
 } from "../queries/users";
 import { TRPCError } from "@trpc/server";
+import { getDb } from "../queries/connection";
+import { friendships } from "@db/schema";
+import { eq, or } from "drizzle-orm";
 
 export const userRouter = createRouter({
   getById: publicQuery
@@ -62,8 +65,56 @@ export const userRouter = createRouter({
         limit: z.number().min(1).max(50).default(20),
       })
     )
-    .query(async ({ input }) => {
-      return searchUsers(input.query, input.limit);
+    .query(async ({ ctx, input }) => {
+      const usersList = await searchUsers(input.query, input.limit);
+      if (!ctx?.user) {
+        return usersList.map((u) => ({
+          ...u,
+          friendshipStatus: "none" as const,
+          friendshipRequestId: undefined as number | undefined,
+        }));
+      }
+
+      const db = getDb();
+      const currentUserId = ctx.user.id;
+
+      // Fetch all friendships involving the current user
+      const userFriendships = await db
+        .select()
+        .from(friendships)
+        .where(
+          or(
+            eq(friendships.requesterId, currentUserId),
+            eq(friendships.addresseeId, currentUserId)
+          )
+        );
+
+      return usersList.map((u) => {
+        if (u.id === currentUserId) {
+          return { ...u, friendshipStatus: "self" as const, friendshipRequestId: undefined as number | undefined };
+        }
+
+        const rel = userFriendships.find(
+          (f) =>
+            (f.requesterId === currentUserId && f.addresseeId === u.id) ||
+            (f.requesterId === u.id && f.addresseeId === currentUserId)
+        );
+
+        let friendshipStatus: "none" | "friends" | "sent_pending" | "received_pending" = "none";
+        if (rel) {
+          if (rel.status === "accepted") {
+            friendshipStatus = "friends";
+          } else if (rel.status === "pending") {
+            friendshipStatus = rel.requesterId === currentUserId ? "sent_pending" : "received_pending";
+          }
+        }
+
+        return {
+          ...u,
+          friendshipStatus,
+          friendshipRequestId: rel?.id,
+        };
+      });
     }),
 
   getStats: publicQuery
@@ -89,7 +140,11 @@ export const userRouter = createRouter({
       if (ctx.user!.id === input.userId) {
         throw new TRPCError({ code: "BAD_REQUEST", message: "Cannot add yourself" });
       }
-      return sendFriendRequest(ctx.user!.id, input.userId);
+      const result = await sendFriendRequest(ctx.user!.id, input.userId);
+      if (!result.success) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: result.message });
+      }
+      return result;
     }),
 
   acceptFriendRequest: authedQuery

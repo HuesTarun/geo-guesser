@@ -186,6 +186,17 @@ export function createSocketServer(httpServer: HttpServer) {
       io.to(`lobby:${data.code}`).emit("lobby:message", message);
     });
 
+    // ─── Lobby: Invite Friend ──────────────────────────────────────
+    socket.on("lobby:invite", (data: { friendId: number; code: string }) => {
+      const targetSocketId = userSockets.get(data.friendId);
+      if (targetSocketId) {
+        io.to(targetSocketId).emit("lobby:invite_received", {
+          hostName: socket.data.username || "A friend",
+          lobbyCode: data.code,
+        });
+      }
+    });
+
     // ─── Lobby: Start Game ─────────────────────────────────────────
     socket.on("lobby:start", async (data: { code: string }) => {
       const lobby = lobbies.get(data.code);

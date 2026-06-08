@@ -1,6 +1,9 @@
-import { Routes, Route } from "react-router";
-import { lazy, Suspense } from "react";
+import { Routes, Route, useNavigate } from "react-router";
+import { lazy, Suspense, useEffect } from "react";
 import { Navbar } from "./components/layout/Navbar";
+import { Toaster } from "@/components/ui/sonner";
+import { useSocket } from "@/hooks/useSocket";
+import { toast } from "sonner";
 
 const Home = lazy(() => import("./pages/Home"));
 const Login = lazy(() => import("./pages/Login"));
@@ -25,9 +28,31 @@ function LoadingFallback() {
 }
 
 export default function App() {
+  const navigate = useNavigate();
+  const { on } = useSocket();
+
+  useEffect(() => {
+    const unsubInvite = on("lobby:invite_received", (data: { hostName: string; lobbyCode: string }) => {
+      toast(`${data.hostName} invited you to join their lobby!`, {
+        action: {
+          label: "Join",
+          onClick: () => {
+            navigate(`/lobby/${data.lobbyCode}`);
+          },
+        },
+        duration: 10000,
+      });
+    });
+
+    return () => {
+      unsubInvite?.();
+    };
+  }, [on, navigate]);
+
   return (
     <div className="min-h-screen bg-[#1A1D24] text-white">
       <Navbar />
+      <Toaster />
       <Suspense fallback={<LoadingFallback />}>
         <Routes>
           <Route path="/" element={<Home />} />

@@ -1,73 +1,49 @@
-# React + TypeScript + Vite
+# GeoGuesser Challenge
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A modern, full-stack GeoGuesser game built with React, Hono, tRPC, Drizzle ORM, and Socket.io. Play singleplayer challenge games, create multiplayer lobbies with friends, and chat in real-time.
 
-Currently, two official plugins are available:
+## 🚀 Getting Started
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+### 1. Prerequisites
+Ensure you have [Node.js](https://nodejs.org/) installed.
 
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+### 2. Environment Setup
+Create a `.env` file in the root directory and copy the contents from `.env.example`:
+```ini
+APP_ID=geotag-challenge
+APP_SECRET=your_jwt_secret_key
+DATABASE_URL=your_supabase_connection_string
+OWNER_UNION_ID=owner123
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+> [!NOTE]
+> * For **local development**, you can use the direct connection string (port `5432`).
+> * For **production/Render deployment**, you must use the Supabase Connection Pooler connection string (port `6543`) to support IPv4 networks and serverless environments.
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+### 3. Install Dependencies
+```bash
+npm install
 ```
+
+### 4. Run Development Servers
+Start both the Vite frontend and Hono backend servers:
+```bash
+npm run dev
+```
+Open [http://localhost:3000](http://localhost:3000) to start playing!
+
+---
+
+## 🛠️ Build & Production
+
+To build the client and package the server for production:
+```bash
+npm run build
+npm run start
+```
+
+## 🗃️ Database Commands
+
+* **Generate migrations:** `npm run db:generate`
+* **Push schema directly:** `npm run db:push`
+* **Run migrations:** `npm run db:migrate`

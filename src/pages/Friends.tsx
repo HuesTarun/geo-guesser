@@ -6,6 +6,7 @@ import {
   Users, UserPlus, Check, X, Search, Trash2,
   ArrowLeft, Loader2,
 } from "lucide-react";
+import { toast } from "sonner";
 
 export default function Friends() {
   const navigate = useNavigate();
@@ -32,26 +33,46 @@ export default function Friends() {
 
   const sendRequestMutation = trpc.user.sendFriendRequest.useMutation({
     onSuccess: () => {
-      utils.user.listFriends.invalidate();
+      toast.success("Friend request sent!");
+      utils.user.search.invalidate();
+      refetchRequests();
+    },
+    onError: (err) => {
+      toast.error(err.message || "Failed to send friend request.");
     },
   });
 
   const acceptRequestMutation = trpc.user.acceptFriendRequest.useMutation({
     onSuccess: () => {
+      toast.success("Friend request accepted!");
       refetchFriends();
       refetchRequests();
+      utils.user.search.invalidate();
+    },
+    onError: (err) => {
+      toast.error(err.message || "Failed to accept friend request.");
     },
   });
 
   const rejectRequestMutation = trpc.user.rejectFriendRequest.useMutation({
     onSuccess: () => {
+      toast.success("Friend request declined.");
       refetchRequests();
+      utils.user.search.invalidate();
+    },
+    onError: (err) => {
+      toast.error(err.message || "Failed to decline friend request.");
     },
   });
 
   const removeFriendMutation = trpc.user.removeFriend.useMutation({
     onSuccess: () => {
+      toast.success("Friend removed.");
       refetchFriends();
+      utils.user.search.invalidate();
+    },
+    onError: (err) => {
+      toast.error(err.message || "Failed to remove friend.");
     },
   });
 
@@ -204,7 +225,7 @@ export default function Friends() {
           </div>
           <div className="space-y-2">
             {searchResults && searchResults.length > 0 ? (
-              searchResults.map((u) => (
+              searchResults.map((u: any) => (
                 <div key={u.id} className="flex items-center justify-between p-4 bg-[#252830] rounded-xl border border-gray-700/50">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-[#3B82F6] rounded-full flex items-center justify-center font-bold text-sm">
@@ -215,12 +236,43 @@ export default function Friends() {
                       <div className="text-xs text-gray-400 capitalize">{u.rank} · {u.eloRating} ELO</div>
                     </div>
                   </div>
-                  <button
-                    onClick={() => sendRequestMutation.mutate({ userId: u.id })}
-                    className="p-2 bg-[#3B82F6]/20 text-[#3B82F6] rounded-lg hover:bg-[#3B82F6]/30 transition-colors"
-                  >
-                    <UserPlus className="w-4 h-4" />
-                  </button>
+                  <div className="flex items-center gap-2">
+                    {u.friendshipStatus === "self" && (
+                      <span className="text-xs text-gray-500 font-medium px-2.5 py-1 bg-gray-800/40 rounded-lg">You</span>
+                    )}
+                    {u.friendshipStatus === "friends" && (
+                      <span className="text-xs text-green-400 font-semibold px-2.5 py-1 bg-green-500/10 rounded-lg">Friends</span>
+                    )}
+                    {u.friendshipStatus === "sent_pending" && (
+                      <span className="text-xs text-yellow-500 font-medium px-2.5 py-1 bg-yellow-500/10 rounded-lg">Pending</span>
+                    )}
+                    {u.friendshipStatus === "received_pending" && (
+                      <div className="flex gap-1.5">
+                        <button
+                          onClick={() => acceptRequestMutation.mutate({ requestId: u.friendshipRequestId })}
+                          className="px-2.5 py-1.5 bg-green-500 text-white text-xs font-semibold rounded-lg hover:bg-green-600 transition-colors"
+                        >
+                          Accept
+                        </button>
+                        <button
+                          onClick={() => rejectRequestMutation.mutate({ requestId: u.friendshipRequestId })}
+                          className="px-2.5 py-1.5 bg-red-500/20 text-red-400 text-xs font-semibold rounded-lg hover:bg-red-500/30 transition-colors"
+                        >
+                          Decline
+                        </button>
+                      </div>
+                    )}
+                    {u.friendshipStatus === "none" && (
+                      <button
+                        onClick={() => sendRequestMutation.mutate({ userId: u.id })}
+                        disabled={sendRequestMutation.isPending}
+                        className="p-2 bg-[#3B82F6]/20 text-[#3B82F6] rounded-lg hover:bg-[#3B82F6]/30 transition-colors disabled:opacity-50"
+                        title="Add Friend"
+                      >
+                        <UserPlus className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
                 </div>
               ))
             ) : searchQuery.length >= 2 ? (
