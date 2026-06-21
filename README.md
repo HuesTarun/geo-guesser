@@ -1,4 +1,6 @@
 # GeoGuesser Challenge
+You can play here
+https://geoguesser-hb0w.onrender.com/
 
 A modern, full-stack GeoGuesser game built with React, Hono, tRPC, Drizzle ORM, and Socket.io. Play singleplayer challenge games, create multiplayer lobbies with friends, and chat in real-time.
 
